@@ -1,7 +1,7 @@
 # ============================================================================
 # Tony Studio (MiniMax H3 · MVC · Real-time · No Network Volume Required)
 # ============================================================================
-ARG BASE_IMAGE=ghcr.io/kendo-studio/minimax-h3:v3-beta.17
+ARG BASE_IMAGE=ghcr.io/mamypoko2008/kendo-comfyui-h3:v3.0.0-beta.17
 FROM ${BASE_IMAGE}
 
 # Preserve existing MCP node_modules from base image, then remove legacy kendo dirs
