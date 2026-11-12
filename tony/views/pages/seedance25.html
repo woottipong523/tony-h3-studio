@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#faf9fb">
+  <title>Tony-Seedance 2.5 | สร้างวิดีโอ</title>
+  <link rel="stylesheet" href="/assets/css/seedance25.css">
+  <script src="/assets/js/controllers/studio-connection.js" defer></script>
+  <script src="/assets/js/controllers/seedance25.js" defer></script>
+</head>
+<body>
+  <header class="app-header">
+    <a class="brand" href="#create" aria-label="Tony-Seedance 2.5"><span class="logo">T</span><span>Tony <b>Seedance 2.5</b></span></a>
+    <span class="header-divider" aria-hidden="true"></span>
+    <span class="product-name" id="product-name">Seedance <b>2.5</b></span>
+    <nav aria-label="เลือกประเภทงาน"><a class="studio-tab active" href="./seedance25.html" aria-current="page">สร้างวิดีโอ</a><a class="studio-tab" href="./images.html">สร้างภาพนิ่ง</a></nav>
+    <button class="theme-button" id="theme" type="button" aria-pressed="false">◐ <span>โหมดมืด</span></button>
+  </header>
+  <main id="create">
+    <aside class="composer" aria-label="ตั้งค่าวิดีโอ">
+      <div class="composer-title"><span class="section-icon" aria-hidden="true">✦</span><div><h1>สร้างวิดีโอใหม่</h1><p>ทุกไอเดีย เริ่มเป็นภาพเคลื่อนไหว</p></div></div>
+      <section class="model-card" aria-label="โมเดล" id="model-card">
+        <div class="model-mark" aria-hidden="true">S<span>2.5</span></div>
+        <div><b>Seedance 2.5</b><small>ByteDance · ผ่าน KIE.ai</small></div>
+        <span class="model-badge">VIDEO</span>
+      </section>
+      <label class="model-select-label" for="video-model">เลือกโมเดล<select id="video-model"><option value="seedance-2-5">Seedance 2.5 · สูงสุด 30 วินาที / 30 ภาพ</option><option value="seedance-2">Seedance 2.0 · สูงสุด 15 วินาที / 9 ภาพ</option></select></label>
+      <p class="section-note" id="model-note">รองรับภาพอ้างอิงสูงสุด 30 ภาพ</p>
+      <section class="references" aria-labelledby="ref-heading">
+        <div class="section-line"><h2 id="ref-heading">ภาพอ้างอิง</h2><span class="count" id="image-count" aria-live="polite">0 / 30</span></div>
+        <p class="section-note">ตัวละคร ฉาก หรือสไตล์ที่อยากให้วิดีโอใช้</p>
+        <div class="reference-grid" id="reference-grid"></div>
+        <button class="add-references" id="add-references" type="button">＋ เพิ่มช่องแนบภาพ <span id="slot-count">3 / 30 ช่อง</span></button>
+        <p class="upload-hint">JPG, PNG, WEBP · ไม่เกิน 30 MB ต่อภาพ</p>
+        <p class="error-message" id="upload-error" role="alert" hidden></p>
+      </section>
+      <section class="prompt-section">
+        <div class="section-line"><label for="prompt">อธิบายวิดีโอของคุณ</label><span id="prompt-count">0 / 30,000</span></div>
+        <textarea id="prompt" maxlength="30000" placeholder="เล่าไอเดียของคุณ… ตัวละครกำลังทำอะไร อยู่ที่ไหน กล้องเคลื่อนแบบไหน และอยากได้บรรยากาศอย่างไร"></textarea>
+        <div class="prompt-tools"><span>ภาพทั้งหมดจะใช้เป็นภาพอ้างอิง</span><button id="example" type="button">ลองตัวอย่าง ↗</button></div>
+      </section>
+      <section class="settings-section" aria-labelledby="settings-heading">
+        <h2 id="settings-heading">การตั้งค่าวิดีโอ</h2>
+        <div class="settings-grid">
+          <label>สัดส่วนภาพ<select id="ratio"><option value="16:9">16:9 · แนวนอน</option><option value="9:16">9:16 · แนวตั้ง</option><option value="1:1">1:1 · จัตุรัส</option><option value="4:3">4:3</option><option value="3:4">3:4</option><option value="21:9">21:9 · ภาพยนตร์</option></select></label>
+          <label>ความละเอียด<select id="resolution"><option value="480p">480p · ประหยัด</option><option value="720p" selected>720p · แนะนำ</option><option value="1080p">1080p · คมชัด</option></select></label>
+          <label id="format-control" hidden>รูปแบบไฟล์<select id="output-format"><option value="png">PNG</option><option value="jpeg">JPEG</option></select></label>
+        </div>
+        <label class="duration-control" for="duration"><span>ความยาว <b id="duration-value">10 วินาที</b></span><input id="duration" type="range" min="4" max="30" step="1" value="10"><small><span>4 วินาที</span><span>30 วินาที</span></small></label>
+        <label class="audio-control"><span><b>สร้างเสียงประกอบ</b><small>เสียงและบรรยากาศไปพร้อมวิดีโอ</small></span><input id="generate-audio" type="checkbox" role="switch" checked><span class="switch-track" aria-hidden="true"></span></label>
+      </section>
+      <div class="submit-area"><div class="estimate"><span>ค่า API โดยประมาณ <small id="price-rate">$0.315 / วินาที</small></span><strong id="price">$3.15</strong></div><p class="baht-estimate" id="price-baht"></p><label class="fx-control">อัตรา USD → บาท <input id="fx-rate" type="number" min="1" max="100" step="0.01" value="33.53"><small>แก้ไขได้ · ไม่รวมค่า Pod / ค่าชำระเงิน</small></label><button id="generate" type="button">✦ <span>ดูสรุปก่อนสร้าง</span> <span aria-hidden="true">→</span></button><p class="draft-note" id="connection-note">กำลังตรวจการเชื่อมต่อ KIE…</p><p id="job-notice" class="job-notice" aria-live="polite"></p></div>
+    </aside>
+    <section class="workspace" aria-label="ผลลัพธ์วิดีโอ">
+      <div class="workspace-top"><div><p class="eyebrow">YOUR CREATIVE SPACE</p><h2>ผลงานของฉัน</h2></div><span class="draft-badge"><i aria-hidden="true"></i> DESIGN PREVIEW</span></div>
+      <details class="connection-panel" id="connection-panel">
+        <summary><span><b>การเชื่อมต่อ KIE / MCP</b><small id="connection-state">กำลังตรวจการเชื่อมต่อ…</small></span><span class="connection-chevron" aria-hidden="true">⌄</span></summary>
+        <div class="connection-content">
+          <label class="connection-label" for="mcp-url">ลิงก์ MCP · สำหรับ Claude</label>
+          <div class="mcp-url-row"><input id="mcp-url" readonly type="text" placeholder="ลิงก์จะขึ้นอัตโนมัติเมื่อเปิดบน Pod"><button id="mcp-copy" type="button" disabled>คัดลอก</button></div>
+          <form id="kie-key-form" autocomplete="off">
+            <label class="connection-label" for="kie-key">KIE API Key</label>
+            <input id="kie-key" type="password" autocomplete="new-password" spellcheck="false" placeholder="วาง KIE API Key ที่นี่" required disabled>
+            <small id="kie-key-state">กำลังตรวจการเชื่อมต่อ…</small>
+            <button id="kie-key-save" type="submit" class="review-generate" disabled>บันทึก KIE Key</button>
+          </form>
+          <p class="section-note">ใช้คีย์เดียวกับภาพ วิดีโอ และ MCP · บันทึกใน Pod</p>
+          <details class="manual-connection"><summary>ใส่ลิงก์ / รหัส Studio เอง</summary>
+            <form id="connection-form"><label class="connection-label" for="access-code">ลิงก์ MCP หรือรหัส Studio</label><input id="access-code" type="password" autocomplete="current-password" placeholder="https://…/mcp/… หรือ tony-…" required><button type="submit">เชื่อมต่อ Studio</button></form>
+          </details>
+          <p id="connection-message" class="review-note" aria-live="polite"></p>
+        </div>
+      </details>
+      <section class="preview-panel" aria-labelledby="preview-heading">
+        <div class="preview-bar"><span>ตัวอย่างวิดีโอ</span><span id="preview-format">16:9 · 720p</span></div>
+        <div class="preview-canvas" id="preview-canvas">
+          <div class="welcome">
+            <span class="welcome-badge">TONY STUDIO / SEEDANCE 2.5</span>
+            <div class="story-illustration" aria-hidden="true"><div class="story-card card-left"><span>＋</span><small>REFERENCE</small></div><div class="story-main"><span class="play-symbol">▶</span><small>SEEDANCE 2.5</small></div><div class="story-card card-right"><span>✦</span><small>YOUR IDEA</small></div></div>
+            <h2 id="preview-heading">เปลี่ยนไอเดียให้เป็นวิดีโอ</h2>
+            <p>เริ่มจากภาพที่คุณชอบ แล้วเล่าเรื่องในแบบของคุณ<br>ให้ Seedance 2.5 ช่วยสร้างภาพเคลื่อนไหว</p>
+            <div class="welcome-steps"><span><b>01</b> แนบภาพ</span><i>→</i><span><b>02</b> เล่าไอเดีย</span><i>→</i><span><b>03</b> สร้างวิดีโอ</span></div>
+          </div>
+        </div>
+        <div class="preview-footer"><span><i aria-hidden="true"></i> รอวิดีโอแรกของคุณ</span><span>Seedance 2.5</span></div>
+      </section>
+      <section class="selection-summary" aria-label="รายละเอียดงาน"><div><span>ภาพอ้างอิง</span><b id="summary-images">0 ภาพ</b></div><div><span>ความยาว</span><b id="summary-duration">10 วินาที</b></div><div><span>สัดส่วน</span><b id="summary-ratio">16:9</b></div><div><span>เสียงประกอบ</span><b id="summary-audio">เปิด</b></div></section>
+      <section class="library" id="library"><div class="section-line"><h2>วิดีโอล่าสุด</h2><span id="history-count">0 ผลงาน</span></div><div id="history-results"></div><div class="library-empty"><span aria-hidden="true">▤</span><div><b>พื้นที่สำหรับเรื่องราวของคุณ</b><p>วิดีโอที่สร้างสำเร็จจะอยู่ตรงนี้ พร้อมดูซ้ำและดาวน์โหลด</p></div></div></section>
+      <footer class="workspace-footer"><span>Tony-Seedance 2.5 · V3.1</span><span>สร้างสรรค์ในแบบของคุณ</span></footer>
+    </section>
+  </main>
+  <dialog id="review-dialog" aria-labelledby="review-title"><form method="dialog"><div class="section-line"><h2 id="review-title">สรุปวิดีโอของคุณ</h2><button class="dialog-close" aria-label="ปิดสรุป" value="cancel">×</button></div><p class="section-note">ตรวจภาพและการตั้งค่าก่อนสร้าง</p><div id="review-images" class="review-images"></div><p id="review-prompt"></p><dl id="review-details"></dl><p class="review-note">นี่คือตัวอย่างหน้าเว็บ ยังไม่มีการส่งงานหรือหักเครดิต</p><button id="confirm-generate" class="review-generate" type="button" hidden>ยืนยันสร้างผ่าน KIE</button><button class="review-done" value="done">กลับไปแก้ไข</button></form></dialog>
+</body>
+</html>
+
