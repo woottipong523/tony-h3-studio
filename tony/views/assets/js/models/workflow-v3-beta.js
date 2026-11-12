@@ -5,7 +5,7 @@
     singularity: 'Minimax-h3_Singularity_ref2va_v2_pruned_int8.safetensors',
     'original-bf16': 'minimax_h3_ref2va_bf16.safetensors'
   };
-  function buildWorkflow({prompt, ratio, megapixels, duration, steps, seed = Math.floor(Math.random() * 0x100000000), model, images = [], videos = [], audios = [], videoAudio = false, attentionMode = 'global_sage'}) {
+  function buildWorkflow({prompt, ratio, megapixels, duration, steps, seed = Math.floor(Math.random() * 0x100000000), model, images = [], videos = [], audios = [], videoAudio = false, attentionMode = 'global_sage', loraStrength = 0.85, sampler = 'res_multistep'}) {
     const envProfile = typeof process !== 'undefined' ? (process.env?.TONY_MODEL_PROFILE || process.env?.KENDO_MODEL_PROFILE) : undefined;
     const selectedModel = model || (envProfile === 'quality' ? 'original-bf16' : 'original');
     if (images.length > 9 || videos.length > 1 || audios.length > 3) throw new Error('Reference limit exceeded');
@@ -13,6 +13,10 @@
     if (!(duration >= 5 && duration <= 20) || !(steps >= 1 && steps <= 50)) throw new Error('Invalid generation settings');
     if (!Number.isInteger(seed) || seed < 0 || seed > 4294967295) throw new Error('Invalid seed');
     if (!MODELS[selectedModel]) throw new Error('Invalid model');
+    const parsedLora = Number(loraStrength);
+    if (!Number.isFinite(parsedLora) || parsedLora < 0 || parsedLora > 1.5) throw new Error('Invalid LoRA strength');
+    const validSamplers = ['euler', 'res_multistep'];
+    const selectedSampler = validSamplers.includes(sampler) ? sampler : 'res_multistep';
     const sizes = {'0.4':[864,480], '0.7':[1152,640], '1':[1376,768], '1.2':[1504,832], '1.5':[1632,928], '2':[1920,1088]};
     if (!sizes[String(megapixels)] || !['16:9','9:16','1:1'].includes(ratio)) throw new Error('Invalid resolution');
     let [width,height] = sizes[String(megapixels)];
@@ -22,14 +26,14 @@
     const n = (class_type, inputs) => ({class_type, inputs});
     const w = {
       model:n('UNETLoader',{unet_name:MODELS[selectedModel],weight_dtype:'default'}),
-      turbo:n('LoraLoaderModelOnly',{lora_name:'minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors',strength_model:1,model:['model',0]}),
+      turbo:n('LoraLoaderModelOnly',{lora_name:'minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors',strength_model:Math.round(parsedLora * 100) / 100,model:['model',0]}),
       clip:n('CLIPLoader',{clip_name:'qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors',type:'minimax',device:'default'}),
       vae:n('VAELoader',{vae_name:'minimax_h3_video_vae_fp16.safetensors'}),
       audioVae:n('VAELoader',{vae_name:'minimax_h3_audio_vae_fp32.safetensors'}),
       reference:n('MiniMaxH3ReferenceToVideo',{prompt,width,height,length:frames,ref_image_size:'match',clip:['clip',0],vae:['vae',0],audio_vae:['audioVae',0]}),
       noise:n('RandomNoise',{noise_seed:seed}),
       guider:n('BasicGuider',{model:['turbo',0],conditioning:['reference',0]}),
-      sampler:n('KSamplerSelect',{sampler_name:'euler'}),
+      sampler:n('KSamplerSelect',{sampler_name:selectedSampler}),
       schedule:n('BasicScheduler',{scheduler:'simple',steps,denoise:1,model:['turbo',0]}),
       sample:n('SamplerCustomAdvanced',{noise:['noise',0],guider:['guider',0],sampler:['sampler',0],sigmas:['schedule',0],latent_image:['reference',1]}),
       decode:n('VAEDecode',{samples:['sample',0],vae:['vae',0]}),

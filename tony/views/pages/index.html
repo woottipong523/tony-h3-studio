@@ -1,6 +1,6 @@
 <!doctype html>
-<html lang="th"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tony Studio | H3 Fast v3</title><link rel="stylesheet" href="/assets/css/v3-beta.css"></head><body>
-<header><span class="logo">T</span><b>Tony Studio</b><small>MiniMax H3 · Fast v3</small><nav class="service-links"><a class="active" href="/v3-beta.html">สร้างงาน</a><a href="/files.html">ไฟล์งาน</a><a class="comfy-link" href="http://127.0.0.1:8188/" target="_blank" rel="noopener">ComfyUI ↗</a></nav><button id="theme" aria-pressed="false">โหมดมืด</button></header>
+<html lang="th" class="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tony Studio | H3 Fast v3</title><link rel="stylesheet" href="/assets/css/v3-beta.css?v=5.1.0"></head><body>
+<header><span class="logo">T</span><b>Tony Studio</b><small>MiniMax H3 · Fast v3</small><nav class="service-links"><a class="active" href="/v3-beta.html">สร้างงาน</a><a href="/files.html">ไฟล์งาน</a><a class="comfy-link" href="http://127.0.0.1:8188/" target="_blank" rel="noopener">ComfyUI ↗</a></nav><button id="theme" aria-pressed="true">☀ โหมดสว่าง</button></header>
 <main>
   <section class="controls" title="ลากขอบขวาเพื่อปรับความกว้าง">
     <h1>Video Generator</h1>
@@ -66,10 +66,33 @@
       <label>ความละเอียด<select id="quality"><option value="0.4">Draft · 0.4 MP</option><option value="0.7">Balanced · 0.7 MP</option><option value="1">1.0× · 1 MP</option><option value="1.2">1.2× · 1.2 MP</option><option value="1.5">1.5× · 1.5 MP</option><option value="2">2× · 2 MP</option></select></label>
     </div>
 
-    <details id="advanced">
-      <summary>ตั้งค่าเพิ่มเติม</summary>
+    <details id="advanced" open>
+      <summary>ตั้งค่าเพิ่มเติม (LoRA Strength · Sampler · Steps · Seed)</summary>
       <div class="advanced-grid">
-        <label class="steps-control">Steps <input id="steps" type="number" min="1" max="50" value="10"><small>Turbo Ref2VA ค่าเริ่มต้น 10 และปรับได้</small></label>
+        <section class="lora-card">
+          <div class="row">
+            <b>Turbo LoRA Strength</b>
+            <span id="lora-strength-value" class="lora-badge">0.85 · สมดุลผิวจริง (แนะนำ)</span>
+          </div>
+          <input id="lora-strength" type="range" min="0.40" max="1.00" step="0.05" value="0.85" aria-label="ความแรงของ Turbo LoRA 0.40 ถึง 1.00">
+          <div class="lora-scale"><span>0.40 (นุ่มนวล)</span><span>0.85 (แนะนำ)</span><span>1.00 (คมจัด)</span></div>
+          <div class="lora-explain">
+            <b>💡 LoRA Strength คืออะไร?</b>
+            <p>คือตัวคุมความแรงของโมเดลเร่งความเร็ว (4-Step Turbo LoRA) ที่มีผลโดยตรงต่อ <b>พื้นผิวคน (Skin Texture)</b> และ <b>ความอิ่มตัวของสี</b>:</p>
+            <ul>
+              <li><b>0.75 – 0.85 (แนะนำ):</b> ผิวดูเป็นธรรมชาติสมจริง ไม่เนียนแข็งเป็นพลาสติก และลดอาการสีผิวอมแดง/อมส้มเมื่อใช้ 8–12 Steps</li>
+              <li><b>0.95 – 1.00:</b> เร่งความคมชัดและคอนทราสต์สูงสุด เหมาะเมื่อลด Steps เหลือ 4–6 Steps (หากใช้คู่กับ 10 Steps ผิวอาจดูพลาสติกหรือสีเข้มจัดเกินไป)</li>
+            </ul>
+          </div>
+        </section>
+        <label class="sampler-control">Sampler (อัลกอริทึมเกลี่ยเม็ดสี)
+          <select id="sampler">
+            <option value="res_multistep" selected>res_multistep · ผิวเนียนเป็นธรรมชาติ ลดสีเพี้ยน (แนะนำ)</option>
+            <option value="euler">euler · คมชัดมาตรฐาน (ดั้งเดิม)</option>
+          </select>
+          <small>res_multistep ช่วยเกลี่ยแสงและผิวในช่วงท้ายของการเรนเดอร์ให้ดูเป็นภาพยนตร์มากขึ้น</small>
+        </label>
+        <label class="steps-control">Steps <input id="steps" type="number" min="1" max="50" value="10"><small>ค่าเริ่มต้น 10 Steps (แนะนำคู่กับ LoRA 0.80–0.85)</small></label>
         <label class="attention-control">Attention mode<select id="attention-mode"><option value="global_sage">Global Sage · เร็ว (แนะนำ)</option><option value="kj_memory">KJ Sage · ประหยัด VRAM</option></select><small id="attention-help">ใช้เส้นทางเดียวกับ RunPod เหมาะกับ RTX 5090</small></label>
         <section class="seed-card">
           <div class="row"><div><b>Seed</b><small>ควบคุมความสุ่มของงาน</small></div><label class="seed-switch"><input id="seed-lock" type="checkbox" role="switch"> ล็อก Seed</label></div>
@@ -153,9 +176,9 @@
     </details>
   </section>
 </main>
-<script src="/assets/js/models/runtime-v4-local.js?v=5.0.0" defer></script>
-<script src="/assets/js/models/workflow-v3-beta.js?v=5.0.0" defer></script>
-<script src="/assets/js/services/api-client.js?v=5.0.0" defer></script>
-<script src="/assets/js/controllers/studio-controller.js?v=5.0.0" defer></script>
+<script src="/assets/js/models/runtime-v4-local.js?v=5.1.0" defer></script>
+<script src="/assets/js/models/workflow-v3-beta.js?v=5.1.0" defer></script>
+<script src="/assets/js/services/api-client.js?v=5.1.0" defer></script>
+<script src="/assets/js/controllers/studio-controller.js?v=5.1.0" defer></script>
 </body></html>
 

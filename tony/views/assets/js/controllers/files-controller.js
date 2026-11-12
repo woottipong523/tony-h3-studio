@@ -5,12 +5,12 @@ const HISTORY_KEY = 'tony-h3-v3-history';
 
 function setTheme(dark) {
   document.documentElement.classList.toggle('dark', dark);
-  $('#theme').textContent = dark ? 'โหมดสว่าง' : 'โหมดมืด';
+  $('#theme').textContent = dark ? '☀ โหมดสว่าง' : '☾ โหมดมืด';
   $('#theme').setAttribute('aria-pressed', String(dark));
   try { localStorage.setItem('tony-theme', dark ? 'dark' : 'light'); } catch {}
 }
-let savedTheme = 'light';
-try { savedTheme = localStorage.getItem('tony-theme') || localStorage.getItem('kendo-theme') || 'light'; } catch {}
+let savedTheme = 'dark';
+try { savedTheme = localStorage.getItem('tony-theme') || localStorage.getItem('kendo-theme') || 'dark'; } catch {}
 setTheme(savedTheme === 'dark');
 $('#theme').onclick = () => setTheme(!document.documentElement.classList.contains('dark'));
 

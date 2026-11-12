@@ -141,7 +141,7 @@ fi
 echo "Starting FileBrowser on port 8080..."
 nohup filebrowser &> /filebrowser.log &
 
-start_jupyter
+# JupyterLab disabled (Tony Studio uses :3000/:3001/:8188)
 
 # Create default comfyui_args.txt if it doesn't exist
 ARGS_FILE="/workspace/runpod-slim/comfyui_args.txt"

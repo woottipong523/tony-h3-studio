@@ -100,6 +100,12 @@ function renderGenerationCard(g) {
     return;
   }
 
+  // Keep local uploading/queued status until ComfyUI WebSocket reports an active phase
+  if (!activePhases.has(g.phase) && g.phase !== 'done' && (submitting || jobs.size > 0)) {
+    updateGenTimerDisplay();
+    return;
+  }
+
   genState.active = true;
   $('#generation-card').hidden = false;
   if (g.started_at) {
@@ -403,21 +409,39 @@ function updateDuration() {
 $('#duration').oninput = updateDuration;
 updateDuration();
 
+function updateLoraStrength() {
+  const input = $('#lora-strength');
+  const badge = $('#lora-strength-value');
+  if (!input || !badge) return;
+  const val = Number(input.value);
+  const text = val.toFixed(2);
+  let label = 'สมดุลผิวจริง (แนะนำ)';
+  if (val < 0.75) label = 'นุ่มนวลพิเศษ';
+  else if (val > 0.90) label = 'คมจัด (ระวังผิวพลาสติก)';
+  badge.textContent = `${text} · ${label}`;
+}
+if ($('#lora-strength')) {
+  $('#lora-strength').oninput = updateLoraStrength;
+  updateLoraStrength();
+}
+
 function setTheme(dark) {
   document.documentElement.classList.toggle('dark', dark);
-  $('#theme').textContent = dark ? 'โหมดสว่าง' : 'โหมดมืด';
+  $('#theme').textContent = dark ? '☀ โหมดสว่าง' : '☾ โหมดมืด';
   $('#theme').setAttribute('aria-pressed', String(dark));
   try { localStorage.setItem('tony-theme', dark ? 'dark' : 'light'); } catch {}
 }
-let savedTheme = 'light';
-try { savedTheme = localStorage.getItem('tony-theme') || localStorage.getItem('kendo-theme') || 'light'; } catch {}
+let savedTheme = 'dark';
+try { savedTheme = localStorage.getItem('tony-theme') || localStorage.getItem('kendo-theme') || 'dark'; } catch {}
 setTheme(savedTheme === 'dark');
 $('#theme').onclick = () => setTheme(!document.documentElement.classList.contains('dark'));
 
 function applySystemStatusPayload(s) {
   ready = Boolean(s.models_ready && s.comfy_ready);
   updateButton();
-  $('#status').textContent = ready ? 'READY' : s.download_error ? 'DOWNLOAD ERROR' : 'PREPARING';
+  const statusEl = $('#status');
+  statusEl.textContent = ready ? 'READY' : s.download_error ? 'DOWNLOAD ERROR' : 'PREPARING';
+  statusEl.className = ready ? 'is-ready' : s.download_error ? 'is-error' : 'is-preparing';
   $('#progress').hidden = ready;
   $('#progress').value = s.progress || 0;
   if (s.comfy_url) {
@@ -891,6 +915,8 @@ async function generate() {
     megapixels: Number($('#quality').value),
     duration: Number($('#duration').value),
     steps: Number($('#steps').value),
+    loraStrength: $('#lora-strength') ? Number($('#lora-strength').value) : 0.85,
+    sampler: $('#sampler') ? $('#sampler').value : 'res_multistep',
     seed,
     videoAudio: $('#video-audio').checked,
     attentionMode: $('#attention-mode').value
@@ -932,7 +958,7 @@ async function generate() {
     const result = await TonyApi.comfy('/prompt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: workflow, client_id: crypto.randomUUID() })
+      body: JSON.stringify({ prompt: workflow, client_id: 'tony-studio-bridge' })
     });
     if (!result.prompt_id) throw new Error('ไม่พบหมายเลขงาน');
     jobs.set(result.prompt_id, true);

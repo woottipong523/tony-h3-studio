@@ -45,7 +45,7 @@ ENV TONY_IMAGE_VERSION="3.0.0-tony.1" \
     TONY_ACTIVE_MODELS="both" \
     FILEBROWSER_CONFIG="/workspace/runpod-slim/.filebrowser.json"
 
-EXPOSE 3000 3001 8080 8188 8888
+EXPOSE 3000 3001 8080 8188
 
 ENTRYPOINT ["/opt/tony/bin/entrypoint-v3-beta.sh"]
 
