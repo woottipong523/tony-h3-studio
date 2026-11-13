@@ -16,7 +16,7 @@ fi
 
 # Detect the assigned GPU and enable the baked sm_120 Sage kernel only when it
 # imports successfully on a compatible Blackwell card.
-if python3.12 /opt/tony/bin/detect_runpod_runtime.py; then
+if python3 /opt/tony/bin/detect_runpod_runtime.py; then
   export TONY_ENABLE_SAGE=1
 else
   export TONY_ENABLE_SAGE=0
@@ -27,7 +27,7 @@ code_file="${TONY_MCP_CODE_FILE:-/workspace/.tony-mcp-code}"
 export TONY_MCP_HOST="${TONY_MCP_HOST:-0.0.0.0}"
 if [[ -z "${TONY_MCP_CODE:-}" ]]; then
   if [[ ! -s "$code_file" ]]; then
-    python3.12 -c 'import secrets; print("tony-" + secrets.token_hex(8))' > "$code_file"
+    python3 -c 'import secrets; print("tony-" + secrets.token_hex(8))' > "$code_file"
   fi
   export TONY_MCP_CODE="$(tr -d '[:space:]' < "$code_file")"
 fi
@@ -45,7 +45,7 @@ if [[ "${TONY_ENABLE_IMAGES:-1}" == "1" && -n "${TONY_IMAGE_MODELS:-}" ]]; then
     mkdir -p /workspace/runpod-slim
     cp -a /opt/comfyui-baked /workspace/runpod-slim/ComfyUI
   fi
-  nohup python3.12 /opt/tony/bin/download_image_models.py \
+  nohup python3 /opt/tony/bin/download_image_models.py \
     > /workspace/tony-image-download.log 2>&1 &
 fi
 

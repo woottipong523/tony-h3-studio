@@ -44,7 +44,7 @@ if [[ "${TONY_AUTO_DOWNLOAD_MODELS:-1}" == "1" ]]; then
   fi
 fi
 
-nohup python3.12 /opt/tony/app/server.py \
+nohup python3 /opt/tony/app/server.py \
   > /workspace/tony-page.log 2>&1 &
 echo "[TONY] MVC Studio Page and ComfyUI proxy started on port 3000"
 

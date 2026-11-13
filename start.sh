@@ -125,21 +125,24 @@ setup_ssh
 export_env_vars
 
 # Initialize FileBrowser if not already done
+mkdir -p "$(dirname "$DB_FILE")"
 if [ ! -f "$DB_FILE" ]; then
     echo "Initializing FileBrowser..."
-    filebrowser config init
-    filebrowser config set --address 0.0.0.0
-    filebrowser config set --port 8080
-    filebrowser config set --root /workspace
-    filebrowser config set --auth.method=json
-    filebrowser users add admin adminadmin12 --perm.admin
+    {
+        filebrowser -d "$DB_FILE" config init
+        filebrowser -d "$DB_FILE" config set --address 0.0.0.0
+        filebrowser -d "$DB_FILE" config set --port 8080
+        filebrowser -d "$DB_FILE" config set --root /workspace
+        filebrowser -d "$DB_FILE" config set --auth.method=json
+        filebrowser -d "$DB_FILE" users add admin adminadmin12 --perm.admin
+    } || echo "[WARN] FileBrowser init failed; continuing without it"
 else
     echo "Using existing FileBrowser configuration..."
 fi
 
 # Start FileBrowser
 echo "Starting FileBrowser on port 8080..."
-nohup filebrowser &> /filebrowser.log &
+nohup filebrowser -d "$DB_FILE" &> /filebrowser.log &
 
 # JupyterLab disabled (Tony Studio uses :3000/:3001/:8188)
 
@@ -160,7 +163,7 @@ if [ -d "$OLD_VENV_DIR" ] && [ ! -d "$VENV_DIR" ]; then
     echo "============================================="
     mv "$OLD_VENV_DIR" "${OLD_VENV_DIR}.bak"
     cd "$COMFYUI_DIR"
-    python3.12 -m venv --system-site-packages "$VENV_DIR"
+    python3 -m venv --system-site-packages "$VENV_DIR"
     source "$VENV_DIR/bin/activate"
     python -m ensurepip
     # Skip nodes baked into the image — their deps are in system site-packages
@@ -199,7 +202,7 @@ if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
     # Create venv with access to system packages (torch, numpy, etc. pre-installed in image)
     if [ ! -d "$VENV_DIR" ]; then
         cd "$COMFYUI_DIR"
-        python3.12 -m venv --system-site-packages "$VENV_DIR"
+        python3 -m venv --system-site-packages "$VENV_DIR"
         source "$VENV_DIR/bin/activate"
 
         # Ensure pip is available in the venv (needed for ComfyUI-Manager)

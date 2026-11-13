@@ -9,8 +9,12 @@ echo "  Tony Studio -> Pure Clean Build & Push to GitHub (ghcr.io)"
 echo "============================================================"
 echo ""
 
-# 1. Sync latest code from /start.sh, /opt/tony, /opt/tony-mcp
-bash "${REPO_DIR}/sync-from-system.sh"
+# 1. Sync latest code from /start.sh, /opt/tony, /opt/tony-mcp (if inside running container)
+if [[ -f /start.sh && -d /opt/tony && -d /opt/tony-mcp ]]; then
+  bash "${REPO_DIR}/sync-from-system.sh"
+else
+  echo "[SYNC] Skipping sync from system (running in workspace repository)"
+fi
 
 # 2. Ask GitHub details
 read -r -p "GitHub Username: " GH_USER

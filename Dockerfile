@@ -30,18 +30,23 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN curl -fsSL https://github.com/filebrowser/filebrowser/releases/download/v2.32.0/linux-amd64-filebrowser.tar.gz | \
     tar -xz -C /usr/local/bin filebrowser && chmod +x /usr/local/bin/filebrowser
 
-# 3. Install Node.js LTS (v22) for Tony MCP Server
+# 3. Ensure python, python3, and python3.12 aliases exist system-wide
+RUN ln -sf $(which python3 || which python) /usr/local/bin/python && \
+    ln -sf $(which python3 || which python) /usr/local/bin/python3 && \
+    ln -sf $(which python3 || which python) /usr/local/bin/python3.12
+
+# 4. Install Node.js LTS (v22) for Tony MCP Server
 RUN mkdir -p /opt/node && \
     curl -fsSL https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz | \
     tar -xJ -C /opt/node --strip-components=1
 
-# 4. Install Python dependencies and ComfyUI Core
+# 5. Install Python dependencies and ComfyUI Core
 COPY pip-requirements.txt /tmp/pip-requirements.txt
 RUN pip install --no-cache-dir -r /tmp/pip-requirements.txt && \
     pip install --no-cache-dir sageattention==2.2.0 || true && \
     rm -f /tmp/pip-requirements.txt
 
-# 5. Clone and setup ComfyUI official release + verified custom nodes
+# 6. Clone and setup ComfyUI official release + verified custom nodes
 RUN git clone --depth 1 -b v0.33.2 https://github.com/Comfy-Org/ComfyUI.git /opt/comfyui-baked && \
     mkdir -p /opt/comfyui-baked/custom_nodes && \
     cd /opt/comfyui-baked/custom_nodes && \
@@ -52,12 +57,12 @@ RUN git clone --depth 1 -b v0.33.2 https://github.com/Comfy-Org/ComfyUI.git /opt
     git clone --depth 1 https://github.com/MadiatorLabs/ComfyUI-RunpodDirect.git && \
     git clone --depth 1 https://github.com/MoonGoblinDev/Civicomfy.git
 
-# 6. Copy Tony MVC Application, MCP Server, and Startup Scripts
+# 7. Copy Tony MVC Application, MCP Server, and Startup Scripts
 COPY tony /opt/tony
 COPY tony-mcp /opt/tony-mcp
 COPY start.sh /start.sh
 
-# 7. Install Tony MCP Node dependencies & permissions
+# 8. Install Tony MCP Node dependencies & permissions
 RUN cd /opt/tony-mcp && npm install --omit=dev && \
     chmod +x /start.sh \
              /opt/tony/bin/entrypoint-v3-beta.sh \
