@@ -171,7 +171,7 @@ function renderRuntime(value) {
     modelSelect.replaceChildren(
       Object.assign(document.createElement('option'), {
         value: 'original-bf16',
-        textContent: 'Original Ref2VA · BF16 66.3 GB'
+        textContent: 'Original Ref2VA · BF16 · 66.3 GB'
       })
     );
     modelSelect.value = 'original-bf16';
