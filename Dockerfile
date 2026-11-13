@@ -42,8 +42,8 @@ RUN pip install --no-cache-dir -r /tmp/pip-requirements.txt && \
     rm -f /tmp/pip-requirements.txt
 
 # 5. Clone and setup ComfyUI official release + verified custom nodes
-RUN mkdir -p /opt/comfyui-baked/custom_nodes && \
-    git clone --depth 1 -b v0.33.2 https://github.com/Comfy-Org/ComfyUI.git /opt/comfyui-baked && \
+RUN git clone --depth 1 -b v0.33.2 https://github.com/Comfy-Org/ComfyUI.git /opt/comfyui-baked && \
+    mkdir -p /opt/comfyui-baked/custom_nodes && \
     cd /opt/comfyui-baked/custom_nodes && \
     git clone --depth 1 https://github.com/LeonQ8/ComfyUI-ALLinONE-MinimaxH3.git && \
     git clone --depth 1 https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git && \
