@@ -1,184 +1,406 @@
 <!doctype html>
-<html lang="th" class="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Tony Studio | H3 Fast v3</title><link rel="stylesheet" href="/assets/css/v3-beta.css?v=5.1.0"></head><body>
-<header><span class="logo">T</span><b>Tony Studio</b><small>MiniMax H3 · Fast v3</small><nav class="service-links"><a class="active" href="/v3-beta.html">สร้างงาน</a><a href="/files.html">ไฟล์งาน</a><a class="comfy-link" href="http://127.0.0.1:8188/" target="_blank" rel="noopener">ComfyUI ↗</a></nav><button id="theme" aria-pressed="true">☀ โหมดสว่าง</button></header>
-<main>
-  <section class="controls" title="ลากขอบขวาเพื่อปรับความกว้าง">
-    <h1>Video Generator</h1>
-    <small class="resize-hint">↔ ลากขอบขวาเพื่อขยายหรือย่อแผง</small>
-    <label class="eyebrow" for="model-select">MODEL</label>
-    <div class="model">
-      <select id="model-select">
-        <option value="original">MiniMax H3 · Original Fast</option>
-        <option value="singularity">Singularity V2 · 20 GB</option>
-      </select>
-      <small id="model-hint">INT8 · Turbo</small>
-    </div>
-    <p class="eyebrow">REFERENCES</p>
-
-    <section class="ref" id="image-ref-section">
-      <div class="row"><b>ภาพอ้างอิง</b><small id="image-count">0 / 9</small></div>
-      <label class="upload" id="image-dropzone">
-        <strong>＋ คลิกเลือกภาพ หรือ ลากไฟล์มาวางที่นี่ (Drag &amp; Drop)</strong>
-        <small>รองรับ PNG, JPG, WEBP · สูงสุด 9 ภาพ (ไม่เกิน 512 MB/ไฟล์)</small>
-        <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp" multiple>
-      </label>
-      <div id="image-files" class="files"></div>
-    </section>
-
-    <section class="ref" id="video-ref-section">
-      <div class="row"><b>Video Ref</b><small id="video-count">0 / 1</small><input id="video-enabled" type="checkbox" role="switch" aria-label="ใช้ Video Ref"></div>
-      <div id="video-body" hidden>
-        <label class="upload" id="video-dropzone">
-          <strong>＋ คลิกเลือกวิดีโอ หรือ ลากไฟล์มาวางที่นี่ (Drag &amp; Drop)</strong>
-          <small>รองรับ MP4, WEBM, MOV · สูงสุด 1 ไฟล์</small>
-          <input id="video-input" type="file" accept="video/mp4,video/webm,video/quicktime">
-        </label>
-        <div id="video-files" class="files"></div>
-        <label class="hint"><input id="video-audio" type="checkbox"> ใช้เสียงจากวิดีโอด้วย</label>
-        <small class="hint">ใช้ช่วงต้นไม่เกินความยาวผลลัพธ์ · แปลงเป็น 24 fps</small>
-      </div>
-    </section>
-
-    <section class="ref" id="audio-ref-section">
-      <div class="row"><b>Audio Ref</b><small id="audio-count">0 / 3</small><input id="audio-enabled" type="checkbox" role="switch" aria-label="ใช้ Audio Ref"></div>
-      <div id="audio-body" hidden>
-        <label class="upload" id="audio-dropzone">
-          <strong>＋ คลิกเลือกเสียง หรือ ลากไฟล์มาวางที่นี่ (Drag &amp; Drop)</strong>
-          <small>รองรับ WAV, MP3, FLAC, OGG, M4A · สูงสุด 3 ไฟล์</small>
-          <input id="audio-input" type="file" accept="audio/wav,audio/mpeg,audio/flac,audio/ogg,audio/mp4" multiple>
-        </label>
-        <div id="audio-files" class="files"></div>
-        <small class="hint">เสียงอ้างอิงไม่ใช่การแทนแทร็กเสียงผลลัพธ์โดยตรง</small>
-      </div>
-    </section>
-
-    <label class="eyebrow" for="prompt">PROMPT</label>
-    <textarea id="prompt" maxlength="20000" placeholder="อธิบายฉาก การเคลื่อนไหว และเสียงที่ต้องการ..."></textarea>
-    <div id="tags" class="tags"></div>
-
-    <div class="settings">
-      <label class="duration-control">
-        <span>ความยาว <b id="duration-value">5 วินาที</b></span>
-        <input id="duration" type="range" min="5" max="20" step="1" value="5" aria-label="ความยาววิดีโอ 5 ถึง 20 วินาที">
-        <small><i>5s</i><i>20s</i></small>
-      </label>
-      <label>สัดส่วน<select id="ratio"><option>16:9</option><option>9:16</option><option>1:1</option></select></label>
-      <label>ความละเอียด<select id="quality"><option value="0.4">Draft · 0.4 MP</option><option value="0.7">Balanced · 0.7 MP</option><option value="1">1.0× · 1 MP</option><option value="1.2">1.2× · 1.2 MP</option><option value="1.5">1.5× · 1.5 MP</option><option value="2">2× · 2 MP</option></select></label>
-    </div>
-
-    <details id="advanced" open>
-      <summary>ตั้งค่าเพิ่มเติม (LoRA Strength · Sampler · Steps · Seed)</summary>
-      <div class="advanced-grid">
-        <section class="lora-card">
-          <div class="row">
-            <b>Turbo LoRA Strength</b>
-            <span id="lora-strength-value" class="lora-badge">0.85 · สมดุลผิวจริง (แนะนำ)</span>
-          </div>
-          <input id="lora-strength" type="range" min="0.40" max="1.00" step="0.05" value="0.85" aria-label="ความแรงของ Turbo LoRA 0.40 ถึง 1.00">
-          <div class="lora-scale"><span>0.40 (นุ่มนวล)</span><span>0.85 (แนะนำ)</span><span>1.00 (คมจัด)</span></div>
-          <div class="lora-explain">
-            <b>💡 LoRA Strength คืออะไร?</b>
-            <p>คือตัวคุมความแรงของโมเดลเร่งความเร็ว (4-Step Turbo LoRA) ที่มีผลโดยตรงต่อ <b>พื้นผิวคน (Skin Texture)</b> และ <b>ความอิ่มตัวของสี</b>:</p>
-            <ul>
-              <li><b>0.75 – 0.85 (แนะนำ):</b> ผิวดูเป็นธรรมชาติสมจริง ไม่เนียนแข็งเป็นพลาสติก และลดอาการสีผิวอมแดง/อมส้มเมื่อใช้ 8–12 Steps</li>
-              <li><b>0.95 – 1.00:</b> เร่งความคมชัดและคอนทราสต์สูงสุด เหมาะเมื่อลด Steps เหลือ 4–6 Steps (หากใช้คู่กับ 10 Steps ผิวอาจดูพลาสติกหรือสีเข้มจัดเกินไป)</li>
-            </ul>
-          </div>
-        </section>
-        <label class="sampler-control">Sampler (อัลกอริทึมเกลี่ยเม็ดสี)
-          <select id="sampler">
-            <option value="res_multistep" selected>res_multistep · ผิวเนียนเป็นธรรมชาติ ลดสีเพี้ยน (แนะนำ)</option>
-            <option value="euler">euler · คมชัดมาตรฐาน (ดั้งเดิม)</option>
-          </select>
-          <small>res_multistep ช่วยเกลี่ยแสงและผิวในช่วงท้ายของการเรนเดอร์ให้ดูเป็นภาพยนตร์มากขึ้น</small>
-        </label>
-        <label class="steps-control">Steps <input id="steps" type="number" min="1" max="50" value="10"><small>ค่าเริ่มต้น 10 Steps (แนะนำคู่กับ LoRA 0.80–0.85)</small></label>
-        <label class="attention-control">Attention mode<select id="attention-mode"><option value="global_sage">Global Sage · เร็ว (แนะนำ)</option><option value="kj_memory">KJ Sage · ประหยัด VRAM</option></select><small id="attention-help">ใช้เส้นทางเดียวกับ RunPod เหมาะกับ RTX 5090</small></label>
-        <section class="seed-card">
-          <div class="row"><div><b>Seed</b><small>ควบคุมความสุ่มของงาน</small></div><label class="seed-switch"><input id="seed-lock" type="checkbox" role="switch"> ล็อก Seed</label></div>
-          <div class="seed-entry"><input id="seed" type="number" min="0" max="4294967295" step="1" disabled aria-label="Seed"><button id="seed-randomize" type="button" disabled>↻ สุ่มใหม่</button></div>
-          <small id="seed-status" class="hint">Auto · ระบบจะสุ่ม Seed ใหม่ทุกครั้ง</small>
-          <button id="reuse-latest-seed" type="button" hidden>ใช้ Seed ล่าสุดต่อ</button>
-        </section>
-      </div>
-    </details>
-
-    <button id="generate" disabled>สร้างวิดีโอ</button>
-    <p id="notice" aria-live="polite">กำลังเชื่อมต่อระบบ…</p>
-    <progress id="progress" max="100" value="0" hidden></progress>
-  </section>
-
-  <section class="content">
-    <div class="row">
-      <h2>ผลงานของฉัน</h2>
-      <div class="runtime-state">
-        <span id="disk-status" hidden>DISK · กำลังตรวจสอบ</span>
-        <span id="attention-status">ATTENTION · กำลังตรวจสอบ</span>
-        <span id="status" role="status">CONNECTING</span>
+<html lang="th" class="dark">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>Tony Studio | AI Video Workstation</title>
+  <link rel="stylesheet" href="/assets/css/v3-beta.css?v=6.0.0">
+</head>
+<body>
+  <!-- Top Studio Bar -->
+  <header class="topbar">
+    <div class="brand-group">
+      <span class="logo">T</span>
+      <div class="brand-text">
+        <b>Tony Studio</b>
+        <small>MiniMax H3 · Ref2VA Workstation</small>
       </div>
     </div>
 
-    <section id="queue-summary" class="queue-summary" aria-label="สถานะคิว">
-      <div class="queue-item active"><span class="queue-dot"></span><div><small>ACTIVE</small><b><span id="queue-active-count">–</span> งาน</b></div></div>
-      <div class="queue-item pending"><span class="queue-dot"></span><div><small>รอคิว</small><b><span id="queue-pending-count">–</span> งาน</b></div></div>
-      <small id="queue-state" class="queue-state">กำลังอ่านคิว…</small>
-    </section>
+    <div class="runtime-state" aria-label="สถานะระบบ">
+      <span id="disk-status" hidden>DISK · กำลังตรวจสอบ</span>
+      <span id="attention-status">ATTENTION · กำลังตรวจสอบ</span>
+      <span id="status" role="status">CONNECTING</span>
+    </div>
 
-    <section id="generation-card" class="gen-card" hidden aria-live="polite">
-      <div class="gen-head">
-        <div class="gen-title-wrap">
-          <span class="gen-live-dot" aria-hidden="true"></span>
-          <b id="gen-phase-label">กำลังเตรียมสร้างวิดีโอ…</b>
-          <span id="gen-step-badge" class="gen-step-badge" hidden>Step 0/10</span>
+    <nav class="service-links" aria-label="เมนูหลัก">
+      <a class="comfy-link" href="http://127.0.0.1:8188/" target="_blank" rel="noopener">ComfyUI ↗</a>
+    </nav>
+    <button id="theme" type="button" aria-pressed="true">☀ โหมดสว่าง</button>
+  </header>
+
+  <!-- Main Bento Workspace -->
+  <main class="studio-shell">
+    <div class="bento-top-grid">
+
+      <!-- =================================================================
+           LEFT COLUMN: INPUT PANEL
+           ================================================================= -->
+      <section class="bento-panel controls" aria-label="Input Panel">
+        <div class="panel-header">
+          <h1>INPUT PANEL</h1>
+          <small class="resize-hint">Multi-Modal Inputs</small>
         </div>
-        <strong id="gen-percent" class="gen-percent">0%</strong>
+
+        <!-- 1. Image References -->
+        <section class="input-card ref" id="image-ref-section">
+          <div class="input-card-head row">
+            <span class="input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+            </span>
+            <div class="input-card-title">
+              <b>Image References</b>
+              <span>ภาพอ้างอิงตัวละคร / ฉาก / สไตล์</span>
+            </div>
+            <small id="image-count" class="count-pill">0 / 9</small>
+          </div>
+          <label class="upload" id="image-dropzone">
+            <strong>＋ คลิกเลือกภาพ หรือ ลากไฟล์มาวาง (Drag &amp; Drop)</strong>
+            <small>PNG, JPG, WEBP · สูงสุด 9 ภาพ (ไม่เกิน 512 MB/ไฟล์)</small>
+            <input id="image-input" type="file" accept="image/png,image/jpeg,image/webp" multiple>
+          </label>
+          <div id="image-files" class="files"></div>
+        </section>
+
+        <!-- 2. Video References -->
+        <section class="input-card ref" id="video-ref-section">
+          <div class="input-card-head row">
+            <span class="input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="14" height="14" rx="2.5"/><path d="m16 10 6-3v10l-6-3Z"/></svg>
+            </span>
+            <div class="input-card-title">
+              <b>Video References</b>
+              <span>วิดีโออ้างอิงการเคลื่อนไหว / มุมกล้อง</span>
+            </div>
+            <small id="video-count" class="count-pill">0 / 1</small>
+            <input id="video-enabled" type="checkbox" role="switch" aria-label="ใช้ Video Ref">
+          </div>
+          <div id="video-body" hidden>
+            <label class="upload" id="video-dropzone">
+              <strong>＋ คลิกเลือกวิดีโอ หรือ ลากไฟล์มาวางที่นี่</strong>
+              <small>MP4, WEBM, MOV · สูงสุด 1 ไฟล์</small>
+              <input id="video-input" type="file" accept="video/mp4,video/webm,video/quicktime">
+            </label>
+            <div id="video-files" class="files"></div>
+            <label class="hint switch-row"><input id="video-audio" type="checkbox"> ใช้เสียงจากวิดีโอต้นฉบับด้วย</label>
+            <small class="hint">ตัดความยาวตามผลลัพธ์ · แปลงเป็น 24 fps อัตโนมัติ</small>
+          </div>
+        </section>
+
+        <!-- 3. Audio References -->
+        <section class="input-card ref" id="audio-ref-section">
+          <div class="input-card-head row">
+            <span class="input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
+            </span>
+            <div class="input-card-title">
+              <b>Audio References</b>
+              <span>เสียงพูด / บรรยากาศอ้างอิง</span>
+            </div>
+            <small id="audio-count" class="count-pill">0 / 3</small>
+            <input id="audio-enabled" type="checkbox" role="switch" aria-label="ใช้ Audio Ref">
+          </div>
+          <div id="audio-body" hidden>
+            <label class="upload" id="audio-dropzone">
+              <strong>＋ คลิกเลือกไฟล์เสียง หรือ ลากไฟล์มาวางที่นี่</strong>
+              <small>WAV, MP3, FLAC, OGG, M4A · สูงสุด 3 ไฟล์</small>
+              <input id="audio-input" type="file" accept="audio/wav,audio/mpeg,audio/flac,audio/ogg,audio/mp4" multiple>
+            </label>
+            <div id="audio-files" class="files"></div>
+            <small class="hint">ใช้เป็นโทนเสียงอ้างอิงสำหรับสังเคราะห์แทร็กเสียงใหม่</small>
+          </div>
+        </section>
+
+        <!-- 4. Prompt Editor -->
+        <section class="input-card prompt-card">
+          <div class="input-card-head row">
+            <span class="input-icon" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+            </span>
+            <div class="input-card-title">
+              <label for="prompt"><b>Prompt Editor</b></label>
+              <span>กำกับฉาก การแสดง แสง และเสียง (บรรยายสิ่งที่ต้องการในเชิงบวก)</span>
+            </div>
+          </div>
+          <textarea id="prompt" maxlength="20000" placeholder="อธิบายฉาก การเคลื่อนไหว มุมกล้อง แสงสี และเสียงที่ต้องการ... (คลิกปุ่มแท็กด้านล่างเพื่ออ้างอิงไฟล์ เช่น <Picture 1>)"></textarea>
+          <div id="tags" class="tags"></div>
+        </section>
+      </section>
+
+      <!-- =================================================================
+           CENTER COLUMN: VIDEO PREVIEW STAGE
+           ================================================================= -->
+      <section class="bento-panel content preview-column" aria-label="Video Preview">
+        <div class="panel-header preview-header">
+          <h2>VIDEO PREVIEW</h2>
+          <section id="queue-summary" class="queue-summary" aria-label="สถานะคิว">
+            <div class="queue-item active"><span class="queue-dot"></span><div><small>ACTIVE</small><b><span id="queue-active-count">–</span> งาน</b></div></div>
+            <div class="queue-item pending"><span class="queue-dot"></span><div><small>PENDING</small><b><span id="queue-pending-count">–</span> งาน</b></div></div>
+            <small id="queue-state" class="queue-state">กำลังอ่านคิว…</small>
+          </section>
+        </div>
+
+        <!-- Real-time Generation Progress Overlay/Card -->
+        <section id="generation-card" class="gen-card" hidden aria-live="polite">
+          <div class="gen-head">
+            <div class="gen-title-wrap">
+              <span class="gen-live-dot" aria-hidden="true"></span>
+              <b id="gen-phase-label">กำลังเตรียมสร้างวิดีโอ…</b>
+              <span id="gen-step-badge" class="gen-step-badge" hidden>Step 0/8</span>
+            </div>
+            <strong id="gen-percent" class="gen-percent">0%</strong>
+          </div>
+          <progress id="gen-progress-bar" max="100" value="0"></progress>
+          <div class="gen-meta">
+            <span>⏱ ใช้เวลาไปแล้ว: <b id="gen-elapsed">00:00</b></span>
+            <span>⏳ เหลืออีกประมาณ: <b id="gen-eta">กำลังประเมินเวลา…</b></span>
+            <button id="cancel-job" type="button" class="cancel-btn">✕ ยกเลิกงาน</button>
+          </div>
+        </section>
+
+        <!-- Main Cinema Viewport -->
+        <div id="preview" class="preview-stage">
+          <div id="welcome" class="empty-player-state">
+            <div class="play-badge" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14l11-7-11-7Z"/></svg>
+            </div>
+            <h3>AI Video Preview</h3>
+            <p class="empty-headline">จอมอนิเตอร์สตูดิโอพร้อมแสดงผลชิ้นงานใหม่</p>
+            <p class="empty-subtext">แนบไฟล์ต้นแบบในฝั่ง <b>Input Panel</b> ปรับแต่งคุณภาพในฝั่ง <b>Settings</b> แล้วกดปุ่ม <b>Generate Video</b> เพื่อเรนเดอร์ภาพและเสียงระดับภาพยนตร์</p>
+            <div class="empty-pills">
+              <span>Ref2VA Multi-Modal</span>
+              <span>24 FPS Cinema</span>
+              <span>Stereo Audio Sync</span>
+            </div>
+          </div>
+        </div>
+
+        <!-- Bottom Player Bar (matches mockup 00:08 / 00:08 + actions) -->
+        <div class="player-footer-bar">
+          <div class="player-time-group">
+            <span id="player-timecode" class="timecode">00:00 / 00:05</span>
+            <span id="activity" aria-live="polite">พร้อมเรนเดอร์งานใหม่</span>
+          </div>
+          <div class="player-actions-group">
+            <a id="download" class="download-btn" hidden download>↓ ดาวน์โหลด MP4</a>
+            <button id="player-fullscreen" type="button" class="icon-btn" title="ขยายเต็มจอ" aria-label="ขยายวิดีโอเต็มจอ">⤢</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- =================================================================
+           RIGHT COLUMN: SETTINGS PANEL
+           ================================================================= -->
+      <section class="bento-panel settings-column" aria-label="Settings">
+        <div class="panel-header">
+          <h2>SETTINGS</h2>
+          <small>Parameters</small>
+        </div>
+
+        <div class="settings-stack">
+          <!-- 1. AI Model -->
+          <div class="setting-box">
+            <div class="setting-head">
+              <label for="model-select"><b>AI Model</b></label>
+              <small id="model-hint">Configure · INT8 Turbo</small>
+            </div>
+            <select id="model-select">
+              <option value="original">MiniMax H3 · Original Fast</option>
+              <option value="singularity">Singularity V2 · 20 GB</option>
+            </select>
+          </div>
+
+          <!-- 2. Duration -->
+          <div class="setting-box duration-control">
+            <div class="setting-head">
+              <label for="duration"><b>Duration</b></label>
+              <small><b id="duration-value">5 วินาที</b></small>
+            </div>
+            <input id="duration" type="range" min="5" max="20" step="1" value="5" aria-label="ความยาววิดีโอ 5 ถึง 20 วินาที">
+            <div class="range-marks"><span>5s</span><span>10s</span><span>15s</span><span>20s</span></div>
+          </div>
+
+          <!-- 3. Aspect Ratio -->
+          <div class="setting-box">
+            <div class="setting-head">
+              <label for="ratio"><b>Aspect Ratio</b></label>
+              <small>Configure · สัดส่วนภาพ</small>
+            </div>
+            <select id="ratio">
+              <option value="16:9">16:9 · แนวนอน (Landscape)</option>
+              <option value="9:16">9:16 · แนวตั้ง (Reels / TikTok)</option>
+              <option value="1:1">1:1 · จัตุรัส (Square)</option>
+            </select>
+          </div>
+
+          <!-- 4. Resolution -->
+          <div class="setting-box">
+            <div class="setting-head">
+              <label for="quality"><b>Resolution</b></label>
+              <small>Configure · ความละเอียด</small>
+            </div>
+            <select id="quality">
+              <option value="0.4">Draft · 0.4 MP (เทสเร็ว)</option>
+              <option value="0.7">Balanced · 0.7 MP</option>
+              <option value="1">Standard · 1.0 MP (HD)</option>
+              <option value="1.2">High · 1.2 MP</option>
+              <option value="1.5">Ultra · 1.5 MP</option>
+              <option value="2">Cinema · 2.0 MP (Full HD)</option>
+            </select>
+          </div>
+
+          <!-- 5. Steps & Sampler -->
+          <div class="setting-box">
+            <div class="setting-head">
+              <label for="steps"><b>Steps &amp; Sampler</b></label>
+              <small>Configure · แนะนำ 6–8 Steps</small>
+            </div>
+            <div class="dual-inputs">
+              <input id="steps" type="number" min="1" max="50" value="8" title="จำนวน Steps (แนะนำ 6-8)">
+              <select id="sampler" aria-label="Sampler">
+                <option value="res_multistep" selected>res_multistep (ผิวจริง)</option>
+                <option value="euler">euler (คมชัด)</option>
+              </select>
+            </div>
+            <small class="setting-subnote">คู่มือ HuggingFace แนะนำ 6–8 Steps เพื่อไม่ให้ภาพคมแข็งเกินไป</small>
+          </div>
+
+          <!-- 6. Turbo LoRA Strength -->
+          <div class="setting-box lora-card">
+            <div class="setting-head">
+              <label for="lora-strength"><b>LoRA Strength</b></label>
+              <small id="lora-strength-value" class="lora-badge">0.85 · สมดุลผิวจริง</small>
+            </div>
+            <input id="lora-strength" type="range" min="0.40" max="1.00" step="0.05" value="0.85" aria-label="ความแรงของ Turbo LoRA 0.40 ถึง 1.00">
+            <div class="range-marks"><span>0.40 (นุ่ม)</span><span>0.85 (แนะนำ)</span><span>1.00 (เต็ม)</span></div>
+            <details class="lora-details">
+              <summary>💡 LoRA Strength คืออะไร?</summary>
+              <p>คุมความแรงของ 4-Step Turbo LoRA: ค่า <b>0.75–0.85</b> ช่วยให้ผิวคนดูเป็นธรรมชาติ ไม่เนียนพลาสติกและลดสีอมแดง ส่วน <b>1.00</b> เหมาะเมื่อลด Steps เหลือ 4–6</p>
+            </details>
+          </div>
+
+          <!-- 7. Seed & Attention -->
+          <div class="setting-box seed-card">
+            <div class="setting-head">
+              <b>Seed &amp; Engine</b>
+              <label class="seed-switch"><input id="seed-lock" type="checkbox" role="switch"> ล็อก Seed</label>
+            </div>
+            <div class="seed-entry">
+              <input id="seed" type="number" min="0" max="4294967295" step="1" disabled placeholder="Auto random seed" aria-label="Seed">
+              <button id="seed-randomize" type="button" disabled>↻ สุ่ม</button>
+            </div>
+            <small id="seed-status" class="hint">Auto · สุ่ม Seed ใหม่ทุกครั้ง</small>
+            <button id="reuse-latest-seed" type="button" hidden>ใช้ Seed ล่าสุดต่อ</button>
+
+            <div class="attention-inline">
+              <label for="attention-mode"><small>Attention Mode</small></label>
+              <select id="attention-mode">
+                <option value="global_sage">Global Sage · เร็ว (แนะนำ)</option>
+                <option value="kj_memory">KJ Sage · ประหยัด VRAM</option>
+              </select>
+              <small id="attention-help" class="hint">เหมาะกับ RTX 5090 / 4090</small>
+            </div>
+          </div>
+
+          <!-- Generate Video CTA Button -->
+          <button id="generate" type="button" disabled>Generate Video</button>
+          <p id="notice" aria-live="polite">กำลังเชื่อมต่อระบบ…</p>
+          <progress id="progress" max="100" value="0" hidden></progress>
+        </div>
+      </section>
+    </div>
+
+    <!-- ===================================================================
+         BOTTOM FULL-WIDTH PANEL: GENERATED VIDEO TIMELINE
+         =================================================================== -->
+    <section class="bento-panel timeline-panel" aria-label="Generated Video Timeline">
+      <div class="timeline-header">
+        <div>
+          <h2>GENERATED VIDEO TIMELINE</h2>
+          <small>คลิกที่การ์ดเพื่อเล่นในจอหลัก · ดาวน์โหลด · หรือลบเพื่อคืนพื้นที่ดิสก์</small>
+        </div>
+        <div class="timeline-header-right">
+          <span class="storyboard-label">Storyboard / Frames</span>
+        </div>
       </div>
-      <progress id="gen-progress-bar" max="100" value="0"></progress>
-      <div class="gen-meta">
-        <span>⏱ ใช้เวลาไปแล้ว: <b id="gen-elapsed">00:00</b></span>
-        <span>⏳ เหลืออีกประมาณ: <b id="gen-eta">กำลังประเมินเวลา…</b></span>
-        <button id="cancel-job" type="button" class="cancel-btn">✕ ยกเลิกงาน</button>
+
+      <!-- History Video Cards -->
+      <div id="history" class="history timeline-grid"></div>
+
+      <!-- Numbered Empty Slot Placeholders (1..6 matching mockup when empty) -->
+      <div id="timeline-placeholders" class="timeline-placeholders">
+        <div class="timeline-slot"><span>1</span></div>
+        <div class="timeline-slot"><span>2</span></div>
+        <div class="timeline-slot"><span>3</span></div>
+        <div class="timeline-slot"><span>4</span></div>
+        <div class="timeline-slot"><span>5</span></div>
+        <div class="timeline-slot"><span>6</span></div>
       </div>
     </section>
 
-    <section id="claude" class="claude" hidden>
-      <div class="row"><div><b>เชื่อมต่อ Claude</b><small id="claude-state">กำลังเริ่มบริการ…</small></div><button id="claude-toggle" type="button" aria-expanded="false">วิธีเชื่อมต่อ</button></div>
-      <div class="claude-url"><input id="claude-url" type="text" readonly aria-label="Claude connection URL"><button id="claude-copy" type="button">คัดลอก URL</button></div>
-      <ol id="claude-steps" hidden>
-        <li><b>Claude Code</b>: <code id="claude-code-cmd">claude mcp add --transport http tony URL</code></li>
-        <li id="claude-remote-help"><b>Claude Desktop/Claude.ai</b>: Settings → Connectors → Add custom connector → วาง Public HTTPS URL</li>
-        <li>พิมพ์ในแชท เช่น “เช็คสถานะ Tony แล้วทำคลิป 9:16 จากรูปที่อัปไว้”</li>
-      </ol>
-      <small id="claude-hint" class="hint">เก็บ URL นี้เป็นความลับ เพราะผู้ที่มี URL สามารถสั่งงาน Tony ได้</small>
-    </section>
+    <!-- ===================================================================
+         BOTTOM SYSTEM ROW: MCP AI WORKFLOW HUB & COMFY CONSOLE
+         =================================================================== -->
+    <div class="bento-bottom-grid">
+      <!-- MCP AI Workflow Hub -->
+      <section id="claude" class="bento-panel claude">
+        <div class="row mcp-header">
+          <div>
+            <div class="mcp-title-row">
+              <b>MCP AI Workflow Hub (Model Context Protocol)</b>
+              <span class="mcp-badge">Streamable HTTP</span>
+            </div>
+            <small id="claude-state">ออนไลน์ · พร้อมเชื่อมต่อ Claude / Codex / Cursor / Antigravity</small>
+          </div>
+          <button id="claude-toggle" type="button" aria-expanded="false">คู่มือเชื่อมต่อ &amp; AI ที่รองรับ</button>
+        </div>
 
-    <div id="preview">
-      <div id="welcome">
-        <span class="logo">T</span>
-        <h2>ทุกไอเดีย เริ่มเป็นภาพเคลื่อนไหว</h2>
-        <p>สร้างวิดีโอจากข้อความ ภาพ วิดีโอ และเสียงอ้างอิง แบบ Real-time</p>
-        <div class="illustration"><span>ภาพ</span><strong>▶</strong><span>เสียง + วิดีโอ</span></div>
-        <p>01 ลากวางไฟล์ &nbsp; 02 เขียนไอเดีย &nbsp; 03 สร้างวิดีโอ</p>
-      </div>
+        <!-- Supported AI Workflows Badges -->
+        <div class="mcp-agents-bar" aria-label="AI Workflows ที่รองรับ">
+          <span class="agent-pill">✦ Claude Code / Desktop</span>
+          <span class="agent-pill">⚡ OpenAI Codex CLI</span>
+          <span class="agent-pill">⌘ Cursor IDE</span>
+          <span class="agent-pill">🚀 Google Antigravity</span>
+          <span class="agent-pill">🔗 Windsurf / Cline / n8n</span>
+        </div>
+
+        <p class="mcp-desc">
+          <b>รองรับ AI Workflow อะไรบ้าง?</b> URL เดียวด้านล่างนี้เชื่อมต่อพร้อมกันได้ทุก AI Agent เพื่อสั่งอัปโหลดภาพ/วิดีโอ/เสียงจาก URL, สั่ง Generate วิดีโอ, เช็กคิวงานแบบ Real-time, ดึงลิงก์ดาวน์โหลดไฟล์ <code>.mp4</code>, และยกเลิกงานอัตโนมัติ
+        </p>
+
+        <div class="claude-url">
+          <input id="claude-url" type="text" readonly aria-label="MCP connection URL">
+          <button id="claude-copy" type="button">คัดลอก URL</button>
+        </div>
+
+        <ol id="claude-steps" hidden>
+          <li><b>Claude Code (CLI)</b>: <code id="claude-code-cmd">claude mcp add --transport http tony URL</code></li>
+          <li><b>OpenAI Codex (CLI)</b>: <code id="codex-code-cmd">codex mcp add tony --url URL</code></li>
+          <li><b>Cursor / Antigravity / Windsurf</b>: เพิ่ม MCP Server ประเภท <code>streamable-http</code> หรือ <code>http</code> แล้ววาง URL ด้านบน</li>
+          <li id="claude-remote-help"><b>Claude Desktop / Claude.ai</b>: Settings → Connectors → Add custom connector → วาง Public HTTPS URL</li>
+          <li><b>ตัวอย่างคำสั่งในแชท</b>: <i>“เช็กสถานะ Tony ดูรูปที่อัปไว้ แล้วสร้างคลิป 9:16 ยาว 8 วินาที พอเสร็จแล้วส่งลิงก์ดาวน์โหลดมาให้หน่อย”</i></li>
+        </ol>
+        <small id="claude-hint" class="hint">เก็บ URL นี้เป็นความลับ เพราะผู้ที่มี URL สามารถสั่งงาน Tony Studio ได้โดยตรง</small>
+      </section>
+
+      <!-- Real-time Comfy Console -->
+      <details id="console-panel" class="bento-panel console-card console-menu">
+        <summary>
+          <span>Comfy Console (Real-time Logs)</span>
+          <small id="console-state">คลิกเพื่อเปิดดู Log สด</small>
+        </summary>
+        <div class="console-head">
+          <span>Log สดจาก ComfyUI (SSE Stream)</span>
+          <a class="comfy-link" href="http://127.0.0.1:8188/" target="_blank" rel="noopener">เปิดหน้า ComfyUI ↗</a>
+        </div>
+        <pre id="comfy-console" aria-live="polite">กำลังรอ Log…</pre>
+      </details>
     </div>
+  </main>
 
-    <div class="row">
-      <span id="activity" aria-live="polite"></span>
-      <a id="download" hidden download>↓ ดาวน์โหลด</a>
-    </div>
-
-    <div id="history" class="history"></div>
-
-    <details id="console-panel" class="console-card console-menu">
-      <summary><span>Comfy Console (Real-time)</span><small id="console-state">เมนู Log · คลิกเพื่อเปิด</small></summary>
-      <div class="console-head"><span>Log สดแบบ Real-time (SSE Stream)</span><a class="comfy-link" href="http://127.0.0.1:8188/" target="_blank" rel="noopener">เปิด ComfyUI ↗</a></div>
-      <pre id="comfy-console" aria-live="polite">กำลังรอ Log…</pre>
-    </details>
-  </section>
-</main>
-<script src="/assets/js/models/runtime-v4-local.js?v=5.1.0" defer></script>
-<script src="/assets/js/models/workflow-v3-beta.js?v=5.1.0" defer></script>
-<script src="/assets/js/services/api-client.js?v=5.1.0" defer></script>
-<script src="/assets/js/controllers/studio-controller.js?v=5.1.0" defer></script>
-</body></html>
-
+  <script src="/assets/js/models/runtime-v4-local.js?v=6.0.0" defer></script>
+  <script src="/assets/js/models/workflow-v3-beta.js?v=6.0.0" defer></script>
+  <script src="/assets/js/services/api-client.js?v=6.0.0" defer></script>
+  <script src="/assets/js/controllers/studio-controller.js?v=6.0.0" defer></script>
+</body>
+</html>

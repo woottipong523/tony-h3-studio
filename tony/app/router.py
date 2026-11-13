@@ -21,26 +21,16 @@ PAGE_ROUTES = {
     "/": PAGES_ROOT / "index.html",
     "/index.html": PAGES_ROOT / "index.html",
     "/v3-beta.html": PAGES_ROOT / "index.html",
-    "/files.html": PAGES_ROOT / "files.html",
-    "/images.html": PAGES_ROOT / "images.html",
-    "/seedance25.html": PAGES_ROOT / "seedance25.html",
 }
 
 ASSET_SHORTCUTS = {
     "/v3-beta.css": ASSETS_ROOT / "css" / "v3-beta.css",
     "/styles.css": ASSETS_ROOT / "css" / "styles.css",
-    "/seedance25.css": ASSETS_ROOT / "css" / "seedance25.css",
     "/workflow-v3-beta.js": ASSETS_ROOT / "js" / "models" / "workflow-v3-beta.js",
-    "/workflow-images.js": ASSETS_ROOT / "js" / "models" / "workflow-images.js",
     "/runtime-v4-local.js": ASSETS_ROOT / "js" / "models" / "runtime-v4-local.js",
     "/api-client.js": ASSETS_ROOT / "js" / "services" / "api-client.js",
     "/v3-beta.js": ASSETS_ROOT / "js" / "controllers" / "studio-controller.js",
     "/studio-controller.js": ASSETS_ROOT / "js" / "controllers" / "studio-controller.js",
-    "/files.js": ASSETS_ROOT / "js" / "controllers" / "files-controller.js",
-    "/files-controller.js": ASSETS_ROOT / "js" / "controllers" / "files-controller.js",
-    "/studio-connection.js": ASSETS_ROOT / "js" / "controllers" / "studio-connection.js",
-    "/images.js": ASSETS_ROOT / "js" / "controllers" / "images.js",
-    "/seedance25.js": ASSETS_ROOT / "js" / "controllers" / "seedance25.js",
     "/app.js": ASSETS_ROOT / "js" / "controllers" / "app.js",
 }
 

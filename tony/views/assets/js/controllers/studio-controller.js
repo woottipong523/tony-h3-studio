@@ -401,10 +401,21 @@ $('#seed-randomize').onclick = () => {
 $('#reuse-latest-seed').onclick = () => lastSeed !== null && setLockedSeed(lastSeed);
 updateSeedControls();
 
+function formatClock(sec) {
+  const s = Math.max(0, Math.round(Number(sec) || 0));
+  const m = Math.floor(s / 60);
+  const r = s % 60;
+  return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
+}
+
 function updateDuration() {
   const seconds = Number($('#duration').value);
   $('#duration-value').textContent = `${seconds} วินาที`;
   $('#duration').setAttribute('aria-valuetext', `${seconds} วินาที`);
+  const tc = $('#player-timecode');
+  if (tc && !$('#preview video')) {
+    tc.textContent = `00:00 / ${formatClock(seconds)}`;
+  }
 }
 $('#duration').oninput = updateDuration;
 updateDuration();
@@ -478,13 +489,17 @@ async function systemStatusFallback() {
 
 function renderClaude(s) {
   const card = $('#claude');
-  if (!s.mcp_url) { card.hidden = true; return; }
+  if (!card) return;
   card.hidden = false;
-  $('#claude-url').value = s.mcp_url;
-  $('#claude-code-cmd').textContent = 'claude mcp add --transport http tony ' + s.mcp_url;
-  const local = /^http:\/\/(127\.0\.0\.1|localhost)(:|\/)/i.test(s.mcp_url);
-  $('#claude-state').textContent = s.mcp_ready
-    ? (local ? 'พร้อมใช้จากเครื่องนี้' : 'พร้อมให้ Claude สั่งงาน')
+  const mcpUrl = s.mcp_url || `${window.location.origin.replace(/:3000\b/, ':3001')}/mcp/tony-studio`;
+  $('#claude-url').value = mcpUrl;
+  $('#claude-code-cmd').textContent = 'claude mcp add --transport http tony ' + mcpUrl;
+  if ($('#codex-code-cmd')) {
+    $('#codex-code-cmd').textContent = 'codex mcp add tony --url ' + mcpUrl;
+  }
+  const local = /^http:\/\/(127\.0\.0\.1|localhost)(:|\/)/i.test(mcpUrl);
+  $('#claude-state').textContent = (s.mcp_ready !== false)
+    ? (local ? 'ออนไลน์บนเครื่องนี้ · พร้อมเชื่อมต่อ AI Agent' : 'ออนไลน์ · พร้อมเชื่อมต่อ Claude / Codex / Cursor / Antigravity')
     : 'กำลังเริ่มบริการ…';
   $('#claude-remote-help').innerHTML = local
     ? '<b>Claude Desktop/Claude.ai</b>: Local URL ใช้จากภายนอกไม่ได้ ต้องสร้าง HTTPS tunnel ก่อน'
@@ -606,9 +621,24 @@ function showVideo(url) {
   v.src = url;
   v.controls = true;
   v.playsInline = true;
+  const syncTime = () => {
+    const tc = $('#player-timecode');
+    if (tc) {
+      tc.textContent = `${formatClock(v.currentTime)} / ${formatClock(v.duration || Number($('#duration').value))}`;
+    }
+  };
+  v.onloadedmetadata = syncTime;
+  v.ontimeupdate = syncTime;
   $('#preview').append(v);
   $('#download').href = url;
   $('#download').hidden = false;
+}
+
+if ($('#player-fullscreen')) {
+  $('#player-fullscreen').onclick = () => {
+    const target = $('#preview video') || $('#preview');
+    if (target?.requestFullscreen) target.requestFullscreen().catch(() => {});
+  };
 }
 
 function clearPreviewIfMatching(url) {
