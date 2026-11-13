@@ -977,6 +977,28 @@ html:not(.dark) .play-badge {
   color: var(--text);
 }
 
+.icon-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+.meta-icon {
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+  display: inline-block;
+  flex-shrink: 0;
+  color: var(--muted);
+}
+
+.btn-icon {
+  width: 14px;
+  height: 14px;
+  vertical-align: -2px;
+  display: inline-block;
+  flex-shrink: 0;
+}
+
 /* ==========================================================================
    RIGHT COLUMN: SETTINGS PANEL (Matches Stacked Cards + Violet CTA)
    ========================================================================== */
@@ -1495,15 +1517,29 @@ html.dark .tw-dropdown-menu {
 }
 
 .lora-details {
-  margin-top: 6px;
-  padding-top: 6px;
+  margin-top: 8px;
+  padding-top: 8px;
   border-top: 1px solid var(--line);
   font-size: 11px;
 }
 
 .lora-details summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
   font-weight: 600;
   color: var(--text-secondary);
+  user-select: none;
+}
+
+.summary-icon,
+.lora-details summary svg {
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  display: inline-block;
+  color: var(--accent);
 }
 
 .lora-details p {
