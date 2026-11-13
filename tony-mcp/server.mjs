@@ -244,10 +244,13 @@ function createServer({ enableImages = CONFIG.enableImages } = {}) {
       ratio: z.enum(['16:9', '9:16', '1:1']).default('16:9'),
       megapixels: z.enum(['0.4', '0.7', '1', '1.2', '1.5', '2']).default('0.7').describe('Output size preset: 0.4 Draft (864x480), 0.7 Balanced (1152x640), 1 (1376x768), 1.2 (1504x832), 1.5 (1632x928), 2 (1920x1088)'),
       duration: z.number().int().min(5).max(20).default(5).describe('Seconds, 5-20'),
-      steps: z.number().int().min(1).max(50).default(10).describe('Sampling steps; the Turbo LoRA default is 10'),
+      steps: z.number().int().min(1).max(50).default(8).describe('Sampling steps (default 8, recommended 6-8)'),
+      model: z.enum(['original', 'singularity']).default('original').describe('AI Model: original (MiniMax H3 Fast) or singularity (Fine-tuned photorealism)'),
+      lora_strength: z.number().min(0.4).max(1.5).default(0.85).describe('Turbo LoRA strength (default 0.85 for realistic skin balance)'),
+      sampler: z.enum(['res_multistep', 'euler']).default('res_multistep').describe('Sampler: res_multistep (skin texture) or euler (sharp)'),
       seed: z.number().int().min(0).max(4294967295).optional().describe('Fixed seed for reproducibility; random when omitted')
     }
-  }, guard(async ({ prompt, images = [], video, video_audio = false, audios = [], ratio = '16:9', megapixels = '0.7', duration = 5, steps = 10, seed }) => {
+  }, guard(async ({ prompt, images = [], video, video_audio = false, audios = [], ratio = '16:9', megapixels = '0.7', duration = 5, steps = 8, model = 'original', lora_strength = 0.85, sampler = 'res_multistep', seed }) => {
     const status = await pageStatus();
     if (!status.models_ready || !status.comfy_ready) throw new ToolError(status.download_error ? 'Model download failed on the Pod; restart the Pod. ' + status.download_error : `Pod not ready yet: models ${status.progress ?? 0}% downloaded, ComfyUI ${status.comfy_ready ? 'running' : 'starting'}. Retry in a minute.`);
     const imageNames = await Promise.all(images.map(name => requireReference(name, 'image')));
@@ -255,7 +258,23 @@ function createServer({ enableImages = CONFIG.enableImages } = {}) {
     const audioNames = await Promise.all(audios.map(name => requireReference(name, 'audio')));
     const finalSeed = seed ?? crypto.randomInt(0, 4294967296);
     let workflow;
-    try { workflow = buildWorkflow({ prompt, ratio, megapixels: Number(megapixels), duration, steps, seed: finalSeed, images: imageNames, videos: videoNames, audios: audioNames, videoAudio: video_audio && videoNames.length > 0 }); } catch (error) { throw new ToolError(error.message); }
+    try {
+      workflow = buildWorkflow({
+        prompt,
+        ratio,
+        megapixels: Number(megapixels),
+        duration,
+        steps,
+        model,
+        loraStrength: lora_strength,
+        sampler,
+        seed: finalSeed,
+        images: imageNames,
+        videos: videoNames,
+        audios: audioNames,
+        videoAudio: video_audio && videoNames.length > 0
+      });
+    } catch (error) { throw new ToolError(error.message); }
     const submitted = await comfy('/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: workflow, client_id: 'tony-mcp-' + crypto.randomUUID() }) });
     if (!submitted.prompt_id) throw new ToolError('ComfyUI did not return a job id: ' + JSON.stringify(submitted));
     const tags = {};

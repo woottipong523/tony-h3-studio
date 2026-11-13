@@ -1,11 +1,13 @@
 <!doctype html>
 <html lang="th" class="dark">
+
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Tony Studio | AI Video Workstation</title>
   <link rel="stylesheet" href="/assets/css/v3-beta.css?v=6.0.0">
 </head>
+
 <body>
   <!-- Top Studio Bar -->
   <header class="topbar">
@@ -24,14 +26,25 @@
     </div>
 
     <div class="topbar-actions">
-      <button id="theme" type="button" class="theme-icon-btn" aria-pressed="true" title="สลับโหมดมืด / สว่าง" aria-label="สลับโหมดมืดหรือสว่าง">
+      <button id="theme" type="button" class="theme-icon-btn" aria-pressed="true" title="สลับโหมดมืด / สว่าง"
+        aria-label="สลับโหมดมืดหรือสว่าง">
         <!-- Sun icon (shown in dark mode to switch to light) -->
-        <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/>
+        <svg class="sun-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="4" />
+          <path d="M12 2v2" />
+          <path d="M12 20v2" />
+          <path d="m4.93 4.93 1.41 1.41" />
+          <path d="m17.66 17.66 1.41 1.41" />
+          <path d="M2 12h2" />
+          <path d="M20 12h2" />
+          <path d="m6.34 17.66-1.41 1.41" />
+          <path d="m19.07 4.93-1.41 1.41" />
         </svg>
         <!-- Moon icon (shown in light mode to switch to dark) -->
-        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"/>
+        <svg class="moon-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z" />
         </svg>
       </button>
     </div>
@@ -54,7 +67,12 @@
         <section class="input-card ref" id="image-ref-section">
           <div class="input-card-head row">
             <span class="input-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="m21 15-5-5L5 21"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="3" y="3" width="18" height="18" rx="3" />
+                <circle cx="8.5" cy="8.5" r="1.5" />
+                <path d="m21 15-5-5L5 21" />
+              </svg>
             </span>
             <div class="input-card-title">
               <b>Image References</b>
@@ -74,7 +92,11 @@
         <section class="input-card ref" id="video-ref-section">
           <div class="input-card-head row">
             <span class="input-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="5" width="14" height="14" rx="2.5"/><path d="m16 10 6-3v10l-6-3Z"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round">
+                <rect x="2" y="5" width="14" height="14" rx="2.5" />
+                <path d="m16 10 6-3v10l-6-3Z" />
+              </svg>
             </span>
             <div class="input-card-title">
               <b>Video References</b>
@@ -99,7 +121,15 @@
         <section class="input-card ref" id="audio-ref-section">
           <div class="input-card-head row">
             <span class="input-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M2 10v3"/><path d="M6 6v11"/><path d="M10 3v18"/><path d="M14 8v7"/><path d="M18 5v13"/><path d="M22 10v3"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M2 10v3" />
+                <path d="M6 6v11" />
+                <path d="M10 3v18" />
+                <path d="M14 8v7" />
+                <path d="M18 5v13" />
+                <path d="M22 10v3" />
+              </svg>
             </span>
             <div class="input-card-title">
               <b>Audio References</b>
@@ -123,14 +153,20 @@
         <section class="input-card prompt-card">
           <div class="input-card-head row">
             <span class="input-icon" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3"/><path d="M9 20h6"/><path d="M12 4v16"/></svg>
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                stroke-linejoin="round">
+                <path d="M4 7V4h16v3" />
+                <path d="M9 20h6" />
+                <path d="M12 4v16" />
+              </svg>
             </span>
             <div class="input-card-title">
               <label for="prompt"><b>Prompt Editor</b></label>
               <span>กำกับฉาก การแสดง แสง และเสียง (บรรยายสิ่งที่ต้องการในเชิงบวก)</span>
             </div>
           </div>
-          <textarea id="prompt" maxlength="20000" placeholder="อธิบายฉาก การเคลื่อนไหว มุมกล้อง แสงสี และเสียงที่ต้องการ... (คลิกปุ่มแท็กด้านล่างเพื่ออ้างอิงไฟล์ เช่น <Picture 1>)"></textarea>
+          <textarea id="prompt" maxlength="20000"
+            placeholder="อธิบายฉาก การเคลื่อนไหว มุมกล้อง แสงสี และเสียงที่ต้องการ... (คลิกปุ่มแท็กด้านล่างเพื่ออ้างอิงไฟล์ เช่น <Picture 1>)"></textarea>
           <div id="tags" class="tags"></div>
         </section>
       </section>
@@ -142,12 +178,15 @@
         <div class="panel-header preview-header">
           <h2>VIDEO PREVIEW</h2>
           <section id="queue-summary" class="queue-summary" aria-label="สถานะคิว">
-            <a id="queue-active-btn" class="queue-item active comfy-link" href="http://127.0.0.1:8188/" target="_blank" rel="noopener" title="คลิกเพื่อเปิดดู Flow การประมวลผลบน ComfyUI">
+            <a id="queue-active-btn" class="queue-item active comfy-link" href="http://127.0.0.1:8188/" target="_blank"
+              rel="noopener" title="คลิกเพื่อเปิดดู Flow การประมวลผลบน ComfyUI">
               <span class="queue-dot"></span>
               <div><small>ACTIVE</small><b><span id="queue-active-count">–</span> งาน</b></div>
               <span class="queue-flow-hint">ดู Flow ↗</span>
             </a>
-            <div class="queue-item pending"><span class="queue-dot"></span><div><small>PENDING</small><b><span id="queue-pending-count">–</span> งาน</b></div></div>
+            <div class="queue-item pending"><span class="queue-dot"></span>
+              <div><small>PENDING</small><b><span id="queue-pending-count">–</span> งาน</b></div>
+            </div>
             <small id="queue-state" class="queue-state">กำลังอ่านคิว…</small>
           </section>
         </div>
@@ -165,15 +204,29 @@
           <progress id="gen-progress-bar" max="100" value="0"></progress>
           <div class="gen-meta">
             <span>
-              <svg class="meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+              <svg class="meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <circle cx="12" cy="12" r="10" />
+                <polyline points="12 6 12 12 16 14" />
+              </svg>
               ใช้เวลาไปแล้ว: <b id="gen-elapsed">00:00</b>
             </span>
             <span>
-              <svg class="meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M5 22h14"/><path d="M5 2h14"/><path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22"/><path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2"/></svg>
+              <svg class="meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <path d="M5 22h14" />
+                <path d="M5 2h14" />
+                <path d="M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22" />
+                <path d="M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" />
+              </svg>
               เหลืออีกประมาณ: <b id="gen-eta">กำลังประเมินเวลา…</b>
             </span>
             <button id="cancel-job" type="button" class="cancel-btn">
-              <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+              <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2.2">
+                <line x1="18" y1="6" x2="6" y2="18" />
+                <line x1="6" y1="6" x2="18" y2="18" />
+              </svg>
               ยกเลิกงาน
             </button>
           </div>
@@ -183,11 +236,14 @@
         <div id="preview" class="preview-stage">
           <div id="welcome" class="empty-player-state">
             <div class="play-badge" aria-hidden="true">
-              <svg viewBox="0 0 24 24" fill="currentColor"><path d="M8 5.14v14l11-7-11-7Z"/></svg>
+              <svg viewBox="0 0 24 24" fill="currentColor">
+                <path d="M8 5.14v14l11-7-11-7Z" />
+              </svg>
             </div>
             <h3>AI Video Preview</h3>
             <p class="empty-headline">จอมอนิเตอร์สตูดิโอพร้อมแสดงผลชิ้นงานใหม่</p>
-            <p class="empty-subtext">แนบไฟล์ต้นแบบในฝั่ง <b>Input Panel</b> ปรับแต่งคุณภาพในฝั่ง <b>Settings</b> แล้วกดปุ่ม <b>Generate Video</b> เพื่อเรนเดอร์ภาพและเสียงระดับภาพยนตร์</p>
+            <p class="empty-subtext">แนบไฟล์ต้นแบบในฝั่ง <b>Input Panel</b> ปรับแต่งคุณภาพในฝั่ง <b>Settings</b>
+              แล้วกดปุ่ม <b>Generate Video</b> เพื่อเรนเดอร์ภาพและเสียงระดับภาพยนตร์</p>
             <div class="empty-pills">
               <span>Ref2VA Multi-Modal</span>
               <span>24 FPS Cinema</span>
@@ -204,11 +260,22 @@
           </div>
           <div class="player-actions-group">
             <a id="download" class="download-btn" hidden download>
-              <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+              <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                stroke-width="2">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" />
+                <polyline points="7 10 12 15 17 10" />
+                <line x1="12" y1="15" x2="12" y2="3" />
+              </svg>
               ดาวน์โหลด MP4
             </a>
-            <button id="player-fullscreen" type="button" class="icon-btn" title="ขยายเต็มจอ" aria-label="ขยายวิดีโอเต็มจอ">
-              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/><line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/></svg>
+            <button id="player-fullscreen" type="button" class="icon-btn" title="ขยายเต็มจอ"
+              aria-label="ขยายวิดีโอเต็มจอ">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="15 3 21 3 21 9" />
+                <polyline points="9 21 3 21 3 15" />
+                <line x1="21" y1="3" x2="14" y2="10" />
+                <line x1="3" y1="21" x2="10" y2="14" />
+              </svg>
             </button>
           </div>
         </div>
@@ -240,18 +307,25 @@
           <div class="setting-box duration-control tw-scale-card">
             <div class="tw-scale-header">
               <span class="tw-scale-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <polyline points="12 6 12 12 16 14" />
+                </svg>
               </span>
               <div class="tw-scale-meta">
                 <div class="tw-scale-title"><span id="duration-value">5 วินาที</span></div>
                 <div class="tw-scale-subtitle">Duration · ความยาวคลิป</div>
               </div>
               <button type="button" class="tw-scale-reset" id="duration-reset" title="รีเซ็ตเป็น 5 วินาที">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
               </button>
             </div>
             <div class="tw-scale-track-wrap">
-              <input id="duration" class="tw-scale-slider" type="range" min="5" max="20" step="1" value="5" aria-label="ความยาววิดีโอ 5 ถึง 20 วินาที">
+              <input id="duration" class="tw-scale-slider" type="range" min="5" max="20" step="1" value="5"
+                aria-label="ความยาววิดีโอ 5 ถึง 20 วินาที">
               <div class="tw-scale-dots" aria-hidden="true">
                 <span class="tw-scale-dot" style="left: 0%;"></span>
                 <span class="tw-scale-dot" style="left: 33.3%;"></span>
@@ -311,18 +385,24 @@
           <div class="setting-box lora-card tw-scale-card">
             <div class="tw-scale-header">
               <span class="tw-scale-icon" aria-hidden="true">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2" />
+                </svg>
               </span>
               <div class="tw-scale-meta">
                 <div class="tw-scale-title"><span id="lora-strength-value">0.85 · สมดุลผิวจริง</span></div>
                 <div class="tw-scale-subtitle">Turbo LoRA · 4-Step</div>
               </div>
               <button type="button" class="tw-scale-reset" id="lora-reset" title="รีเซ็ตเป็น 0.85 (แนะนำ)">
-                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+                <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                  <path d="M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8" />
+                  <path d="M3 3v5h5" />
+                </svg>
               </button>
             </div>
             <div class="tw-scale-track-wrap">
-              <input id="lora-strength" class="tw-scale-slider" type="range" min="0.40" max="1.00" step="0.05" value="0.85" aria-label="ความแรงของ Turbo LoRA 0.40 ถึง 1.00">
+              <input id="lora-strength" class="tw-scale-slider" type="range" min="0.40" max="1.00" step="0.05"
+                value="0.85" aria-label="ความแรงของ Turbo LoRA 0.40 ถึง 1.00">
               <div class="tw-scale-dots" aria-hidden="true">
                 <span class="tw-scale-dot" style="left: 0%;"></span>
                 <span class="tw-scale-dot" style="left: 25%;"></span>
@@ -334,10 +414,16 @@
             <div class="range-marks"><span>0.40 (นุ่ม)</span><span>0.85 (แนะนำ)</span><span>1.00 (เต็ม)</span></div>
             <details class="lora-details">
               <summary>
-                <svg class="summary-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><path d="M12 16v-4"/><path d="M12 8h.01"/></svg>
+                <svg class="summary-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2">
+                  <circle cx="12" cy="12" r="10" />
+                  <path d="M12 16v-4" />
+                  <path d="M12 8h.01" />
+                </svg>
                 LoRA Strength คืออะไร?
               </summary>
-              <p>คุมความแรงของ 4-Step Turbo LoRA: ค่า <b>0.75–0.85</b> ช่วยให้ผิวคนดูเป็นธรรมชาติ ไม่เนียนพลาสติกและลดสีอมแดง ส่วน <b>1.00</b> เหมาะเมื่อลด Steps เหลือ 4–6</p>
+              <p>คุมความแรงของ 4-Step Turbo LoRA: ค่า <b>0.75–0.85</b> ช่วยให้ผิวคนดูเป็นธรรมชาติ
+                ไม่เนียนพลาสติกและลดสีอมแดง ส่วน <b>1.00</b> เหมาะเมื่อลด Steps เหลือ 4–6</p>
             </details>
           </div>
 
@@ -348,9 +434,16 @@
               <label class="seed-switch"><input id="seed-lock" type="checkbox" role="switch"> ล็อก Seed</label>
             </div>
             <div class="seed-entry">
-              <input id="seed" type="number" min="0" max="4294967295" step="1" disabled placeholder="Auto random seed" aria-label="Seed">
+              <input id="seed" type="number" min="0" max="4294967295" step="1" disabled placeholder="Auto random seed"
+                aria-label="Seed">
               <button id="seed-randomize" type="button" disabled title="สุ่ม Seed ใหม่">
-                <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>
+                <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2">
+                  <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+                  <path d="M21 3v5h-5" />
+                  <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+                  <path d="M8 16H3v5" />
+                </svg>
                 สุ่ม
               </button>
             </div>
@@ -430,7 +523,9 @@
         </div>
 
         <p class="mcp-desc">
-          <b>รองรับ AI Workflow อะไรบ้าง?</b> URL เดียวด้านล่างนี้เชื่อมต่อพร้อมกันได้ทุก AI Agent เพื่อสั่งอัปโหลดภาพ/วิดีโอ/เสียงจาก URL, สั่ง Generate วิดีโอ, เช็กคิวงานแบบ Real-time, ดึงลิงก์ดาวน์โหลดไฟล์ <code>.mp4</code>, และยกเลิกงานอัตโนมัติ
+          <b>รองรับ AI Workflow อะไรบ้าง?</b> URL เดียวด้านล่างนี้เชื่อมต่อพร้อมกันได้ทุก AI Agent
+          เพื่อสั่งอัปโหลดภาพ/วิดีโอ/เสียงจาก URL, สั่ง Generate วิดีโอ, เช็กคิวงานแบบ Real-time, ดึงลิงก์ดาวน์โหลดไฟล์
+          <code>.mp4</code>, และยกเลิกงานอัตโนมัติ
         </p>
 
         <div class="claude-url">
@@ -441,11 +536,15 @@
         <ol id="claude-steps" hidden>
           <li><b>Claude Code (CLI)</b>: <code id="claude-code-cmd">claude mcp add --transport http tony URL</code></li>
           <li><b>OpenAI Codex (CLI)</b>: <code id="codex-code-cmd">codex mcp add tony --url URL</code></li>
-          <li><b>Cursor / Antigravity / Windsurf</b>: เพิ่ม MCP Server ประเภท <code>streamable-http</code> หรือ <code>http</code> แล้ววาง URL ด้านบน</li>
-          <li id="claude-remote-help"><b>Claude Desktop / Claude.ai</b>: Settings → Connectors → Add custom connector → วาง Public HTTPS URL</li>
-          <li><b>ตัวอย่างคำสั่งในแชท</b>: <i>“เช็กสถานะ Tony ดูรูปที่อัปไว้ แล้วสร้างคลิป 9:16 ยาว 8 วินาที พอเสร็จแล้วส่งลิงก์ดาวน์โหลดมาให้หน่อย”</i></li>
+          <li><b>Cursor / Antigravity / Windsurf</b>: เพิ่ม MCP Server ประเภท <code>streamable-http</code> หรือ
+            <code>http</code> แล้ววาง URL ด้านบน</li>
+          <li id="claude-remote-help"><b>Claude Desktop / Claude.ai</b>: Settings → Connectors → Add custom connector →
+            วาง Public HTTPS URL</li>
+          <li><b>ตัวอย่างคำสั่งในแชท</b>: <i>“เช็กสถานะ Tony ดูรูปที่อัปไว้ แล้วสร้างคลิป 9:16 ยาว 8 วินาที
+              พอเสร็จแล้วส่งลิงก์ดาวน์โหลดมาให้หน่อย”</i></li>
         </ol>
-        <small id="claude-hint" class="hint">เก็บ URL นี้เป็นความลับ เพราะผู้ที่มี URL สามารถสั่งงาน Tony Studio ได้โดยตรง</small>
+        <small id="claude-hint" class="hint">เก็บ URL นี้เป็นความลับ เพราะผู้ที่มี URL สามารถสั่งงาน Tony Studio
+          ได้โดยตรง</small>
       </section>
 
       <!-- Real-time Comfy Console -->
@@ -468,4 +567,5 @@
   <script src="/assets/js/services/api-client.js?v=6.0.0" defer></script>
   <script src="/assets/js/controllers/studio-controller.js?v=6.0.0" defer></script>
 </body>
+
 </html>
