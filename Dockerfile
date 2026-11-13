@@ -1,8 +1,8 @@
 # ============================================================================
 # Tony Studio (MiniMax H3 · Full Autonomous Build · 100% Clean)
-# Base: Official PyTorch + CUDA Development Image (Ubuntu 24.04)
+# Base: Official PyTorch 2.8 + CUDA 12.8 (required for RTX 5090 / Blackwell sm_120)
 # ============================================================================
-FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-devel
+FROM pytorch/pytorch:2.8.0-cuda12.8-cudnn9-devel
 
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1 \
@@ -40,11 +40,14 @@ RUN mkdir -p /opt/node && \
     curl -fsSL https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz | \
     tar -xJ -C /opt/node --strip-components=1
 
-# 5. Install Python dependencies and ComfyUI Core
+# 5. Install pinned Python dependencies
 COPY pip-requirements.txt /tmp/pip-requirements.txt
 RUN pip install --no-cache-dir -r /tmp/pip-requirements.txt && \
-    pip install --no-cache-dir sageattention==2.2.0 || true && \
     rm -f /tmp/pip-requirements.txt
+
+# 5b. SageAttention is optional (no prebuilt sm_120 wheel on PyPI); never fail the build
+RUN pip install --no-cache-dir sageattention==2.2.0 || \
+    echo "[WARN] sageattention not installed - runtime will fall back to native attention"
 
 # 6. Clone and setup ComfyUI official release + verified custom nodes
 RUN git clone --depth 1 -b v0.33.2 https://github.com/Comfy-Org/ComfyUI.git /opt/comfyui-baked && \
@@ -56,6 +59,19 @@ RUN git clone --depth 1 -b v0.33.2 https://github.com/Comfy-Org/ComfyUI.git /opt
     git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Manager.git && \
     git clone --depth 1 https://github.com/MadiatorLabs/ComfyUI-RunpodDirect.git && \
     git clone --depth 1 https://github.com/MoonGoblinDev/Civicomfy.git
+
+# 6b. Install ComfyUI core + custom node requirements (keep the base image's CUDA torch)
+RUN TORCH_PIN=$(python3 -c "import torch,torchvision,torchaudio;print(f'torch=={torch.__version__}\ntorchvision=={torchvision.__version__}\ntorchaudio=={torchaudio.__version__}')" 2>/dev/null || python3 -c "import torch;print(f'torch=={torch.__version__}')") && \
+    echo "$TORCH_PIN" > /opt/comfyui-runtime-constraints.txt && \
+    grep -viE '^(torch|torchvision|torchaudio)([<>=~! ]|$)' /opt/comfyui-baked/requirements.txt > /tmp/comfy-req.txt && \
+    pip install --no-cache-dir -c /opt/comfyui-runtime-constraints.txt -r /tmp/comfy-req.txt && \
+    for req in /opt/comfyui-baked/custom_nodes/*/requirements.txt; do \
+        echo "[BUILD] Installing $req"; \
+        pip install --no-cache-dir -c /opt/comfyui-runtime-constraints.txt -r "$req" || \
+            echo "[WARN] Some requirements failed for $req"; \
+    done && \
+    python3 -c "import sqlalchemy, torch; print('[BUILD] torch', torch.__version__, 'cuda', torch.version.cuda, 'archs', torch.cuda.get_arch_list())" && \
+    rm -f /tmp/comfy-req.txt
 
 # 7. Copy Tony MVC Application, MCP Server, and Startup Scripts
 COPY tony /opt/tony

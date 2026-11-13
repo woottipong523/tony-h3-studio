@@ -190,6 +190,12 @@ if [ -d "$OLD_VENV_DIR" ] && [ ! -d "$VENV_DIR" ]; then
 fi
 
 # Setup ComfyUI if needed
+# Recreate the venv if it was built against a different base-image Python (e.g. after an image upgrade)
+if [ -d "$VENV_DIR" ] && ! "$VENV_DIR/bin/python" -c "import torch, sqlalchemy" >/dev/null 2>&1; then
+    echo "Existing venv is incompatible with this image; recreating $VENV_DIR"
+    rm -rf "$VENV_DIR"
+fi
+
 if [ ! -d "$COMFYUI_DIR" ] || [ ! -d "$VENV_DIR" ]; then
     echo "First time setup: Copying baked ComfyUI to workspace..."
 
