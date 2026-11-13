@@ -5,26 +5,14 @@ REPO_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_DIR"
 
 echo "============================================================"
-echo "  Tony Studio -> Push to GitHub & Build ghcr.io Image"
+echo "  Tony Studio -> Pure Clean Build & Push to GitHub (ghcr.io)"
 echo "============================================================"
 echo ""
 
 # 1. Sync latest code from /start.sh, /opt/tony, /opt/tony-mcp
 bash "${REPO_DIR}/sync-from-system.sh"
 
-# 2. Optional: update BASE_IMAGE in Dockerfile
-CURRENT_BASE=$(grep -E '^ARG BASE_IMAGE=' Dockerfile | head -n1 | cut -d= -f2-)
-echo ""
-echo "BASE_IMAGE ปัจจุบันใน Dockerfile: ${CURRENT_BASE}"
-read -r -p "ใส่ชื่อ Container Image ต้นฉบับจาก RunPod (กด Enter เพื่อใช้ค่าเดิม): " INPUT_BASE
-if [[ -n "${INPUT_BASE// }" ]]; then
-  CLEAN_BASE="${INPUT_BASE// /}"
-  sed -i "s|^ARG BASE_IMAGE=.*|ARG BASE_IMAGE=${CLEAN_BASE}|" Dockerfile
-  echo "อัปเดต BASE_IMAGE เป็น: ${CLEAN_BASE}"
-fi
-
-# 3. Ask GitHub details
-echo ""
+# 2. Ask GitHub details
 read -r -p "GitHub Username: " GH_USER
 GH_USER="${GH_USER// /}"
 if [[ -z "$GH_USER" ]]; then
@@ -46,7 +34,7 @@ if [[ -z "$GH_TOKEN" ]]; then
   exit 1
 fi
 
-# 4. Initialize git repo if needed
+# 3. Initialize git repo if needed
 if [[ ! -d .git ]]; then
   git init -b main
 fi
@@ -63,39 +51,37 @@ else
 fi
 
 git add -A
-if git diff --cached --quiet; then
-  echo "ไม่มีไฟล์เปลี่ยนแปลงใหม่ กำลัง push commit ล่าสุด..."
+
+if git diff-index --quiet HEAD -- 2>/dev/null; then
+  echo "ไม่มีการเปลี่ยนแปลงใหม่ในโค้ด แต่จะทำการ Push ซ้ำไปยัง origin main..."
 else
-  COMMIT_MSG="${1:-Update Tony Studio MVC}"
-  git commit -m "$COMMIT_MSG"
+  git commit -m "feat(tony): standalone pure 100% build without legacy base"
 fi
 
-# 5. Push using ephemeral askpass helper so token is never saved to disk
-ASKPASS_FILE=$(mktemp)
-trap 'rm -f "$ASKPASS_FILE"' EXIT
-cat > "$ASKPASS_FILE" <<'EOF'
+# 4. Push securely using ephemeral askpass
+ASKPASS_SH=$(mktemp)
+cat << 'EOF' > "$ASKPASS_SH"
 #!/usr/bin/env bash
 case "$1" in
-  *Username*) printf '%s\n' "$_GH_USER" ;;
-  *Password*) printf '%s\n' "$_GH_TOKEN" ;;
+  *Username*) echo "$GH_USER" ;;
+  *Password*) echo "$GH_TOKEN" ;;
+  *) echo "" ;;
 esac
 EOF
-chmod 700 "$ASKPASS_FILE"
+chmod 700 "$ASKPASS_SH"
+
+export GH_USER GH_TOKEN
+export GIT_ASKPASS="$ASKPASS_SH"
+export GIT_TERMINAL_PROMPT=0
 
 echo ""
-echo "กำลัง Push ขึ้น ${CLEAN_REMOTE} ..."
-_GH_USER="$GH_USER" _GH_TOKEN="$GH_TOKEN" GIT_TERMINAL_PROMPT=0 GIT_ASKPASS="$ASKPASS_FILE" git push -u origin main
-
-OWNER_LOWER=$(echo "$GH_USER" | tr '[:upper:]' '[:lower:]')
-REPO_LOWER=$(echo "$GH_REPO" | tr '[:upper:]' '[:lower:]')
+echo "[GIT] กำลัง Push ไปยัง GitHub (${CLEAN_REMOTE})..."
+git push -u origin main
+rm -f "$ASKPASS_SH"
 
 echo ""
 echo "============================================================"
-echo "  Push สำเร็จ!"
-echo "  1. ดูสถานะ Build ได้ที่:"
-echo "     https://github.com/${GH_USER}/${GH_REPO}/actions"
-echo "  2. เมื่อ Build เสร็จ ตั้ง Visibility เป็น Public ที่:"
-echo "     https://github.com/${GH_USER}?tab=packages"
-echo "  3. นำชื่อ Image นี้ไปใส่ใน RunPod Template:"
-echo "     ghcr.io/${OWNER_LOWER}/${REPO_LOWER}:latest"
+echo "✓ Push เรียบร้อยแล้ว!"
+echo "GitHub Actions จะทำการ Build Base Image ตัวใหม่ของคุณเองแบบ 100%"
+echo "ติดตามการ Build ได้ที่: https://github.com/${GH_USER}/${GH_REPO}/actions"
 echo "============================================================"

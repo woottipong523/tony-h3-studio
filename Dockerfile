@@ -1,38 +1,87 @@
 # ============================================================================
-# Tony Studio (MiniMax H3 · MVC · Real-time · No Network Volume Required)
+# Tony Studio (MiniMax H3 · Full Autonomous Build · 100% Clean)
+# Base: Official PyTorch + CUDA Development Image (Ubuntu 24.04)
 # ============================================================================
-ARG BASE_IMAGE=ghcr.io/mamypoko2008/kendo-comfyui-h3:v3.0.0-beta.17
-FROM ${BASE_IMAGE}
+FROM pytorch/pytorch:2.4.0-cuda12.4-cudnn9-devel
 
-# Preserve existing MCP node_modules from base image, then remove legacy kendo dirs
-RUN mkdir -p /opt/tony-mcp && \
-    if [ -d /opt/kendo-mcp/node_modules ]; then cp -a /opt/kendo-mcp/node_modules /opt/tony-mcp/node_modules; fi && \
-    rm -rf /opt/kendo /opt/kendo-page /opt/kendo-mcp
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    NODE_VERSION=v22.23.2 \
+    PATH="/opt/node/bin:${PATH}"
 
-# Copy Tony MVC application, MCP server, and startup script
-COPY start.sh /start.sh
+# 1. Install system utilities, video codecs, and download tools
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    aria2 \
+    curl \
+    ca-certificates \
+    ffmpeg \
+    git \
+    git-lfs \
+    libgl1 \
+    libglib2.0-0 \
+    openssh-server \
+    openssh-client \
+    rsync \
+    procps \
+    xz-utils \
+    && rm -rf /var/lib/apt/lists/*
+
+# 2. Install FileBrowser standalone binary for web workspace management
+RUN curl -fsSL https://github.com/filebrowser/filebrowser/releases/download/v2.32.0/linux-amd64-filebrowser.tar.gz | \
+    tar -xz -C /usr/local/bin filebrowser && chmod +x /usr/local/bin/filebrowser
+
+# 3. Install Node.js LTS (v22) for Tony MCP Server
+RUN mkdir -p /opt/node && \
+    curl -fsSL https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz | \
+    tar -xJ -C /opt/node --strip-components=1
+
+# 4. Install Python dependencies and ComfyUI Core
+COPY pip-requirements.txt /tmp/pip-requirements.txt
+RUN pip install --no-cache-dir -r /tmp/pip-requirements.txt && \
+    pip install --no-cache-dir sageattention==2.2.0 || true && \
+    rm -f /tmp/pip-requirements.txt
+
+# 5. Clone and setup ComfyUI official release + verified custom nodes
+RUN mkdir -p /opt/comfyui-baked/custom_nodes && \
+    git clone --depth 1 -b v0.33.2 https://github.com/Comfy-Org/ComfyUI.git /opt/comfyui-baked && \
+    cd /opt/comfyui-baked/custom_nodes && \
+    git clone --depth 1 https://github.com/LeonQ8/ComfyUI-ALLinONE-MinimaxH3.git && \
+    git clone --depth 1 https://github.com/Kosinkadink/ComfyUI-VideoHelperSuite.git && \
+    git clone --depth 1 https://github.com/kijai/ComfyUI-KJNodes.git && \
+    git clone --depth 1 https://github.com/ltdrdata/ComfyUI-Manager.git && \
+    git clone --depth 1 https://github.com/MadiatorLabs/ComfyUI-RunpodDirect.git && \
+    git clone --depth 1 https://github.com/MoonGoblinDev/Civicomfy.git
+
+# 6. Copy Tony MVC Application, MCP Server, and Startup Scripts
 COPY tony /opt/tony
 COPY tony-mcp /opt/tony-mcp
+COPY start.sh /start.sh
 
-RUN if [ ! -d /opt/tony-mcp/node_modules ]; then \
-      cd /opt/tony-mcp && PATH="/opt/node/bin:$PATH" npm ci --omit=dev; \
-    fi && \
+# 7. Install Tony MCP Node dependencies & permissions
+RUN cd /opt/tony-mcp && npm install --omit=dev && \
     chmod +x /start.sh \
-      /opt/tony/bin/*.sh \
-      /opt/tony/bin/*.py \
-      /opt/tony/app/server.py
+             /opt/tony/bin/entrypoint-v3-beta.sh \
+             /opt/tony/bin/entrypoint.sh \
+             /opt/tony/bin/download-models.sh \
+             /opt/tony/bin/download_models_v3_beta.py \
+             /opt/tony/bin/download_image_models.py \
+             /opt/tony/bin/detect_runpod_runtime.py
 
-# Environment Configuration for Tony Studio (Container Disk / Ephemeral Pod Ready)
-ENV TONY_IMAGE_VERSION="3.0.0-tony.1" \
+# 8. Environment Configuration
+ENV TONY_BASE_DIR="/opt/tony" \
+    TONY_WORKSPACE_ROOT="/workspace" \
+    TONY_MODELS_ROOT="/workspace/ComfyUI/models" \
+    TONY_COMFY_DIR="/workspace/runpod-slim/ComfyUI" \
+    TONY_COMFY_BAKED_DIR="/opt/comfyui-baked" \
+    TONY_COMFY_HOST="127.0.0.1" \
+    TONY_COMFY_PORT="8188" \
     TONY_COMFY_LOG_FILE="/workspace/comfyui.log" \
     TONY_RUNTIME_FILE="/workspace/tony-runtime.json" \
     TONY_MCP_CODE_FILE="/workspace/.tony-mcp-code" \
     TONY_READY_FILE="/workspace/.tony-h3-v3-models-ready" \
     TONY_ERROR_FILE="/workspace/.tony-h3-v3-models-error" \
     TONY_WORKFLOW_FILE="/opt/tony/views/assets/js/models/workflow-v3-beta.js" \
-    TONY_IMAGE_WORKFLOW_FILE="/opt/tony/views/assets/js/models/workflow-images.js" \
     TONY_PAGE_ROOT="/opt/tony/views/pages" \
-    TONY_KIE_DATA_DIR="/workspace/tony-kie" \
     TONY_STUDIO_HOST="127.0.0.1" \
     TONY_STUDIO_PORT="8766" \
     TONY_MCP_HOST="0.0.0.0" \
@@ -48,4 +97,3 @@ ENV TONY_IMAGE_VERSION="3.0.0-tony.1" \
 EXPOSE 3000 3001 8080 8188
 
 ENTRYPOINT ["/opt/tony/bin/entrypoint-v3-beta.sh"]
-
