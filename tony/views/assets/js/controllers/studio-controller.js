@@ -408,17 +408,44 @@ function formatClock(sec) {
   return `${String(m).padStart(2, '0')}:${String(r).padStart(2, '0')}`;
 }
 
+function updateSliderProgress(slider) {
+  if (!slider) return;
+  const min = Number(slider.min) || 0;
+  const max = Number(slider.max) || 100;
+  const val = Number(slider.value) || 0;
+  const percent = Math.min(100, Math.max(0, ((val - min) / (max - min)) * 100));
+  slider.style.setProperty('--fill-percent', `${percent}%`);
+}
+
 function updateDuration() {
-  const seconds = Number($('#duration').value);
-  $('#duration-value').textContent = `${seconds} วินาที`;
-  $('#duration').setAttribute('aria-valuetext', `${seconds} วินาที`);
+  const slider = $('#duration');
+  if (!slider) return;
+  const seconds = Number(slider.value);
+  const valEl = $('#duration-value');
+  if (valEl) valEl.textContent = `${seconds} วินาที`;
+  slider.setAttribute('aria-valuetext', `${seconds} วินาที`);
+  updateSliderProgress(slider);
   const tc = $('#player-timecode');
   if (tc && !$('#preview video')) {
     tc.textContent = `00:00 / ${formatClock(seconds)}`;
   }
 }
-$('#duration').oninput = updateDuration;
-updateDuration();
+const durationInput = $('#duration');
+if (durationInput) {
+  durationInput.oninput = updateDuration;
+  updateDuration();
+}
+
+const durationResetBtn = $('#duration-reset');
+if (durationResetBtn) {
+  durationResetBtn.onclick = () => {
+    const slider = $('#duration');
+    if (slider) {
+      slider.value = '5';
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  };
+}
 
 function updateLoraStrength() {
   const input = $('#lora-strength');
@@ -430,16 +457,29 @@ function updateLoraStrength() {
   if (val < 0.75) label = 'นุ่มนวลพิเศษ';
   else if (val > 0.90) label = 'คมจัด (ระวังผิวพลาสติก)';
   badge.textContent = `${text} · ${label}`;
+  updateSliderProgress(input);
 }
-if ($('#lora-strength')) {
-  $('#lora-strength').oninput = updateLoraStrength;
+const loraInput = $('#lora-strength');
+if (loraInput) {
+  loraInput.oninput = updateLoraStrength;
   updateLoraStrength();
+}
+
+const loraResetBtn = $('#lora-reset');
+if (loraResetBtn) {
+  loraResetBtn.onclick = () => {
+    const slider = $('#lora-strength');
+    if (slider) {
+      slider.value = '0.85';
+      slider.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+  };
 }
 
 function setTheme(dark) {
   document.documentElement.classList.toggle('dark', dark);
-  $('#theme').textContent = dark ? '☀ โหมดสว่าง' : '☾ โหมดมืด';
   $('#theme').setAttribute('aria-pressed', String(dark));
+  $('#theme').setAttribute('title', dark ? 'สลับเป็นโหมดสว่าง' : 'สลับเป็นโหมดมืด');
   try { localStorage.setItem('tony-theme', dark ? 'dark' : 'light'); } catch {}
 }
 let savedTheme = 'dark';
@@ -697,13 +737,14 @@ function compareHistoryItems(a, b) {
 
 function bindDeleteButton(btn, item) {
   let confirmTimer = null;
+  const trashSvg = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg>';
   btn.onclick = async () => {
     if (!btn.classList.contains('confirming')) {
       btn.classList.add('confirming');
-      btn.textContent = 'ยืนยันลบ?';
+      btn.innerHTML = 'ยืนยันลบ?';
       confirmTimer = setTimeout(() => {
         btn.classList.remove('confirming');
-        btn.textContent = '🗑 ลบ';
+        btn.innerHTML = `${trashSvg} ลบ`;
       }, 4000);
       return;
     }
@@ -724,7 +765,7 @@ function bindDeleteButton(btn, item) {
     } catch (e) {
       btn.disabled = false;
       btn.classList.remove('confirming');
-      btn.textContent = '🗑 ลบ';
+      btn.innerHTML = `${trashSvg} ลบ`;
       notice(e.message || 'ลบไฟล์ไม่สำเร็จ');
     }
   };
@@ -746,11 +787,11 @@ function createHistoryCard(item) {
   actions.className = 'history-actions';
   a.href = item.url;
   a.download = '';
-  a.textContent = '↓ ดาวน์โหลด';
+  a.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg> ดาวน์โหลด';
 
   del.type = 'button';
   del.className = 'delete-btn';
-  del.textContent = '🗑 ลบ';
+  del.innerHTML = '<svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/><line x1="10" y1="11" x2="10" y2="17"/><line x1="14" y1="11" x2="14" y2="17"/></svg> ลบ';
 
   actions.append(a, del);
   article.append(v, actions);
@@ -1004,6 +1045,182 @@ async function generate() {
     updateButton();
   }
 }
+
+// =============================================================================
+// Tailwind Floating Dropdown (Matching Image 2: modern popup menu)
+// =============================================================================
+const DROPDOWN_ICONS = {
+  // Ratio
+  '16:9': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="20" height="12" x="2" y="6" rx="2"/></svg>',
+  '9:16': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="12" height="20" x="6" y="2" rx="2"/></svg>',
+  '1:1': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>',
+  // Quality
+  '0.4': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+  '0.7': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><path d="m4.93 4.93 4.24 4.24"/><path d="m14.83 9.17 4.24-4.24"/><path d="m14.83 14.83 4.24 4.24"/><path d="m9.17 14.83-4.24 4.24"/></svg>',
+  '1': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>',
+  '1.2': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>',
+  '1.5': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="6 3 18 3 22 9 12 22 2 9"/><line x1="12" y1="22" x2="12" y2="9"/><line x1="2" y1="9" x2="22" y2="9"/><line x1="6" y1="3" x2="10" y2="9"/><line x1="18" y1="3" x2="14" y2="9"/></svg>',
+  '2': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect width="20" height="20" x="2" y="2" rx="2.18" ry="2.18"/><line x1="7" y1="2" x2="7" y2="22"/><line x1="17" y1="2" x2="17" y2="22"/><line x1="2" y1="12" x2="22" y2="12"/><line x1="2" y1="7" x2="7" y2="7"/><line x1="2" y1="17" x2="7" y2="17"/><line x1="17" y1="17" x2="22" y2="17"/><line x1="17" y1="7" x2="22" y2="7"/></svg>',
+  // Models
+  'original': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="4" y="4" width="16" height="16" rx="2"/><rect x="9" y="9" width="6" height="6"/><line x1="9" y1="1" x2="9" y2="4"/><line x1="15" y1="1" x2="15" y2="4"/><line x1="9" y1="20" x2="9" y2="23"/><line x1="15" y1="20" x2="15" y2="23"/><line x1="20" y1="9" x2="23" y2="9"/><line x1="20" y1="14" x2="23" y2="14"/><line x1="1" y1="9" x2="4" y2="9"/><line x1="1" y1="14" x2="4" y2="14"/></svg>',
+  'singularity': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>',
+  'original-bf16': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="7" y1="12" x2="17" y2="12"/></svg>',
+  // Samplers
+  'res_multistep': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="8" r="5"/><path d="M20 21a8 8 0 0 0-16 0"/></svg>',
+  'euler': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="10"/><line x1="22" y1="12" x2="18" y2="12"/><line x1="6" y1="12" x2="2" y2="12"/><line x1="12" y1="6" x2="12" y2="2"/><line x1="12" y1="22" x2="12" y2="18"/></svg>',
+  // Attention
+  'global_sage': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>',
+  'kj_memory': '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>',
+};
+
+const DEFAULT_DROPDOWN_ICON = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><circle cx="12" cy="12" r="9"/></svg>';
+const DROPDOWN_CHECK_SVG = '<svg class="tw-dropdown-check" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>';
+const DROPDOWN_CHEVRON_SVG = '<svg class="tw-dropdown-chevron" viewBox="0 0 20 20" fill="currentColor"><path fill-rule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.168l3.71-3.938a.75.75 0 111.08 1.04l-4.25 4.5a.75.75 0 01-1.08 0l-4.25-4.5a.75.75 0 01.02-1.06z" clip-rule="evenodd"/></svg>';
+
+function setupTailwindDropdown(select) {
+  if (!select || select.dataset.twDropdownInit) return;
+  select.dataset.twDropdownInit = 'true';
+  select.classList.add('sr-only');
+
+  const wrapper = document.createElement('div');
+  wrapper.className = 'tw-dropdown';
+  wrapper.dataset.for = select.id;
+
+  const trigger = document.createElement('button');
+  trigger.type = 'button';
+  trigger.className = 'tw-dropdown-trigger';
+  trigger.setAttribute('aria-haspopup', 'listbox');
+  trigger.setAttribute('aria-expanded', 'false');
+
+  const triggerLeft = document.createElement('span');
+  triggerLeft.className = 'tw-dropdown-trigger-left';
+  const triggerIcon = document.createElement('span');
+  triggerIcon.className = 'tw-dropdown-icon';
+  const triggerLabel = document.createElement('span');
+  triggerLabel.className = 'tw-dropdown-label';
+  triggerLeft.append(triggerIcon, triggerLabel);
+
+  trigger.append(triggerLeft);
+  trigger.insertAdjacentHTML('beforeend', DROPDOWN_CHEVRON_SVG);
+
+  const menu = document.createElement('div');
+  menu.className = 'tw-dropdown-menu';
+  menu.setAttribute('role', 'listbox');
+
+  wrapper.append(trigger, menu);
+  select.after(wrapper);
+
+  function syncFromSelect() {
+    menu.replaceChildren();
+    const currentVal = select.value;
+    let selectedOption = select.selectedOptions[0] || select.options[0];
+
+    for (const opt of select.options) {
+      if (opt.hidden) continue;
+      const item = document.createElement('div');
+      item.className = 'tw-dropdown-item';
+      item.setAttribute('role', 'option');
+      item.dataset.value = opt.value;
+      if (opt.disabled) item.classList.add('disabled');
+      if (opt.value === currentVal) {
+        item.classList.add('active');
+        item.setAttribute('aria-selected', 'true');
+        selectedOption = opt;
+      }
+
+      const itemLeft = document.createElement('div');
+      itemLeft.className = 'tw-dropdown-item-left';
+
+      const iconSpan = document.createElement('span');
+      iconSpan.className = 'tw-dropdown-item-icon';
+      iconSpan.innerHTML = DROPDOWN_ICONS[opt.value] || DEFAULT_DROPDOWN_ICON;
+
+      const textWrap = document.createElement('div');
+      textWrap.className = 'tw-dropdown-item-text';
+
+      const rawText = opt.textContent.trim();
+      const parts = rawText.split('·').map(p => p.trim());
+      const titleSpan = document.createElement('span');
+      titleSpan.className = 'tw-dropdown-item-title';
+      titleSpan.textContent = parts[0] || rawText;
+      textWrap.append(titleSpan);
+
+      if (parts.length > 1) {
+        const subSpan = document.createElement('span');
+        subSpan.className = 'tw-dropdown-item-sub';
+        subSpan.textContent = parts.slice(1).join(' · ');
+        textWrap.append(subSpan);
+      }
+
+      itemLeft.append(iconSpan, textWrap);
+      item.append(itemLeft);
+      item.insertAdjacentHTML('beforeend', DROPDOWN_CHECK_SVG);
+
+      item.onclick = (e) => {
+        e.stopPropagation();
+        if (opt.disabled) return;
+        select.value = opt.value;
+        select.dispatchEvent(new Event('change', { bubbles: true }));
+        closeMenu();
+      };
+
+      menu.append(item);
+    }
+
+    if (selectedOption) {
+      triggerLabel.textContent = selectedOption.textContent.trim();
+      triggerIcon.innerHTML = DROPDOWN_ICONS[selectedOption.value] || DEFAULT_DROPDOWN_ICON;
+    }
+    trigger.disabled = select.disabled;
+    if (select.disabled) wrapper.classList.add('disabled');
+    else wrapper.classList.remove('disabled');
+  }
+
+  function openMenu() {
+    if (select.disabled) return;
+    document.querySelectorAll('.tw-dropdown.open').forEach(d => {
+      if (d !== wrapper) d.classList.remove('open');
+    });
+    wrapper.classList.add('open');
+    trigger.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeMenu() {
+    wrapper.classList.remove('open');
+    trigger.setAttribute('aria-expanded', 'false');
+  }
+
+  trigger.onclick = (e) => {
+    e.stopPropagation();
+    if (wrapper.classList.contains('open')) closeMenu();
+    else openMenu();
+  };
+
+  select.addEventListener('change', syncFromSelect);
+
+  const observer = new MutationObserver(() => syncFromSelect());
+  observer.observe(select, { childList: true, attributes: true, subtree: true });
+
+  syncFromSelect();
+}
+
+document.addEventListener('click', (e) => {
+  if (!e.target.closest('.tw-dropdown')) {
+    document.querySelectorAll('.tw-dropdown.open').forEach(d => d.classList.remove('open'));
+  }
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    document.querySelectorAll('.tw-dropdown.open').forEach(d => d.classList.remove('open'));
+  }
+});
+
+// Initialize all setting dropdowns
+['#model-select', '#ratio', '#quality', '#sampler', '#attention-mode'].forEach(id => {
+  const el = $(id);
+  if (el) setupTailwindDropdown(el);
+});
 
 $('#generate').onclick = generate;
 renderRuntime();
