@@ -70,6 +70,7 @@ RUN TORCH_PIN=$(python3 -c "import torch,torchvision,torchaudio;print(f'torch=={
             echo "[WARN] Some requirements failed for $req"; \
     done && \
     python3 -c "import sqlalchemy, torch, sageattention; import comfy_kitchen.backends.cuda as ck; assert ck._EXT_AVAILABLE, f'comfy_kitchen CUDA unavailable: {ck._EXT_ERROR}'; print('[BUILD] torch', torch.__version__, 'cuda', torch.version.cuda, 'comfy_kitchen_cuda', ck._EXT_AVAILABLE, 'cublaslt', ck._CUBLASLT_AVAILABLE, 'sageattention', getattr(sageattention, '__version__', 'ok'))" && \
+    python3 -c "import pathlib; p=pathlib.Path('/opt/comfyui-baked/comfy/quant_ops.py'); p.write_text(p.read_text().replace('if cuda_version < (13,):', 'if cuda_version < (12, 8):')) if p.is_file() else None" && \
     rm -f /tmp/comfy-req.txt
 
 # 7. Copy Tony MVC Application, MCP Server, and Startup Scripts

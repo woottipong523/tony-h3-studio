@@ -2,6 +2,7 @@
 import http.client
 import json
 from urllib.parse import urlsplit
+from app.models.comfy_model import comfy_bridge, fetch_queue_counts, free_comfy_memory
 from app.models.config import (
     COMFY_HOST,
     COMFY_PORT,
@@ -35,14 +36,35 @@ def _comfy_request_headers(handler) -> dict[str, str]:
 def proxy_to_comfy(handler, include_body: bool = True) -> None:
     content_length = int(handler.headers.get("Content-Length", "0") or "0")
     body = handler.rfile.read(content_length) if content_length else None
+    upstream_path = _upstream_comfy_path(handler.path)
+    headers = _comfy_request_headers(handler)
+
+    if handler.command == "POST" and upstream_path.split("?", 1)[0] == "/prompt" and body:
+        submitted_wf = None
+        try:
+            payload = json.loads(body.decode("utf-8"))
+            if isinstance(payload, dict):
+                if isinstance(payload.get("prompt"), dict):
+                    submitted_wf = payload["prompt"]
+                if not payload.get("client_id"):
+                    payload["client_id"] = "tony-studio-bridge"
+                    body = json.dumps(payload, ensure_ascii=False).encode("utf-8")
+                    headers["Content-Length"] = str(len(body))
+        except Exception:
+            pass
+        q_info = fetch_queue_counts()
+        if q_info.get("ok") and q_info.get("active", 0) == 0 and q_info.get("pending", 0) == 0:
+            free_comfy_memory(unload_models=True)
+        comfy_bridge.mark_prompt_submitted(submitted_wf)
+
     connection = http.client.HTTPConnection(COMFY_HOST, COMFY_PORT, timeout=120)
 
     try:
         connection.request(
             handler.command,
-            _upstream_comfy_path(handler.path),
+            upstream_path,
             body=body,
-            headers=_comfy_request_headers(handler),
+            headers=headers,
         )
         response = connection.getresponse()
         handler.send_response(response.status, response.reason)

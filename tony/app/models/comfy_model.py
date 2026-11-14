@@ -18,6 +18,24 @@ def comfy_ready() -> bool:
         connection.close()
 
 
+def free_comfy_memory(unload_models: bool = True) -> bool:
+    """Release cached models and intermediate tensors from GPU VRAM via ComfyUI /free."""
+    connection = http.client.HTTPConnection(COMFY_HOST, COMFY_PORT, timeout=5)
+    try:
+        body = json.dumps({"unload_models": bool(unload_models), "free_memory": True}).encode("utf-8")
+        connection.request(
+            "POST",
+            "/free",
+            body=body,
+            headers={"Content-Type": "application/json", "Connection": "close"},
+        )
+        return connection.getresponse().status == 200
+    except Exception:
+        return False
+    finally:
+        connection.close()
+
+
 def fetch_queue_counts() -> dict:
     connection = http.client.HTTPConnection(COMFY_HOST, COMFY_PORT, timeout=3)
     try:
@@ -131,6 +149,30 @@ class ComfyWSBridge:
         with self._lock:
             self._subscribers.discard(q)
 
+    def mark_prompt_submitted(self, workflow: dict | None = None) -> None:
+        now = time.time()
+        with self._lock:
+            self._step_times = []
+            self._state.update(
+                phase="loading",
+                phase_label="กำลังส่งงานเข้าคิว ComfyUI…",
+                node="model",
+                completed_nodes=[],
+                cached_nodes=[],
+                active_workflow=workflow if isinstance(workflow, dict) else self._state.get("active_workflow"),
+                step=0,
+                max_steps=0,
+                percent=2.0,
+                step_percent=0.0,
+                started_at=now,
+                elapsed_seconds=0,
+                eta_seconds=None,
+                queue_active=max(1, int(self._state.get("queue_active") or 0)),
+                last_error=None,
+                updated_at=now,
+            )
+        self._broadcast("prompt_submitted")
+
     def snapshot(self) -> dict:
         with self._lock:
             snap = dict(self._state)
@@ -168,14 +210,46 @@ class ComfyWSBridge:
 
         if msg_type == "status":
             q_info = fetch_queue_counts()
+            auto_completed_pid = None
             with self._lock:
                 if q_info["ok"]:
                     self._state["queue_active"] = q_info["active"]
                     self._state["queue_pending"] = q_info["pending"]
                     if q_info.get("running_workflow"):
                         self._state["active_workflow"] = q_info["running_workflow"]
+                    if (
+                        q_info["active"] == 0
+                        and q_info["pending"] == 0
+                        and self._state.get("phase") in ("loading", "conditioning", "sampling", "decoding", "saving", "running")
+                        and (now - float(self._state.get("started_at") or 0)) > 3.0
+                    ):
+                        started = self._state.get("started_at") or now
+                        auto_completed_pid = self._state.get("prompt_id") or "auto"
+                        wf = self._state.get("active_workflow")
+                        d_list = list(self._state.get("completed_nodes") or [])
+                        if isinstance(wf, dict):
+                            for k in wf.keys():
+                                ks = str(k)
+                                if ks not in d_list:
+                                    d_list.append(ks)
+                        self._state.update(
+                            prompt_id=None,
+                            phase="done",
+                            phase_label="สร้างวิดีโอเสร็จสมบูรณ์",
+                            node=None,
+                            completed_nodes=d_list,
+                            percent=100.0,
+                            step_percent=100.0,
+                            elapsed_seconds=max(0, int(round(now - started))),
+                            eta_seconds=0,
+                            last_completed_prompt_id=auto_completed_pid,
+                        )
                 self._state["updated_at"] = now
-            self._broadcast("queue")
+            if auto_completed_pid is not None:
+                threading.Thread(target=free_comfy_memory, kwargs={"unload_models": True}, daemon=True).start()
+                self._broadcast("execution_done", {"completed_prompt_id": auto_completed_pid})
+            else:
+                self._broadcast("queue")
             return
 
         if msg_type == "execution_start":
@@ -233,6 +307,37 @@ class ComfyWSBridge:
                 self._broadcast("executed")
             return
 
+        if msg_type == "execution_success":
+            prompt_id = data.get("prompt_id") or self._state.get("prompt_id")
+            q_info = fetch_queue_counts()
+            with self._lock:
+                started = self._state.get("started_at") or now
+                d_list = list(self._state.get("completed_nodes") or [])
+                wf = self._state.get("active_workflow")
+                if isinstance(wf, dict):
+                    for k in wf.keys():
+                        ks = str(k)
+                        if ks not in d_list:
+                            d_list.append(ks)
+                self._state.update(
+                    prompt_id=None,
+                    phase="done",
+                    phase_label="สร้างวิดีโอเสร็จสมบูรณ์",
+                    node=None,
+                    completed_nodes=d_list,
+                    percent=100.0,
+                    step_percent=100.0,
+                    elapsed_seconds=max(0, int(round(now - started))),
+                    eta_seconds=0,
+                    last_completed_prompt_id=prompt_id,
+                    queue_active=q_info["active"] if q_info["ok"] else 0,
+                    queue_pending=q_info["pending"] if q_info["ok"] else 0,
+                    updated_at=now,
+                )
+            threading.Thread(target=free_comfy_memory, kwargs={"unload_models": True}, daemon=True).start()
+            self._broadcast("execution_done", {"completed_prompt_id": prompt_id})
+            return
+
         if msg_type == "executing":
             node = data.get("node")
             prompt_id = data.get("prompt_id") or self._state.get("prompt_id")
@@ -265,6 +370,7 @@ class ComfyWSBridge:
                         queue_pending=q_info["pending"] if q_info["ok"] else 0,
                         updated_at=now,
                     )
+                threading.Thread(target=free_comfy_memory, kwargs={"unload_models": True}, daemon=True).start()
                 self._broadcast("execution_done", {"completed_prompt_id": prompt_id})
                 return
 
@@ -346,12 +452,15 @@ class ComfyWSBridge:
             with self._lock:
                 self._state.update(
                     prompt_id=None,
+                    node=None,
                     phase="cancelled" if is_cancel else "error",
                     phase_label=err_msg,
                     eta_seconds=None,
                     last_error=None if is_cancel else err_msg,
+                    queue_active=0,
                     updated_at=now,
                 )
+            threading.Thread(target=free_comfy_memory, kwargs={"unload_models": True}, daemon=True).start()
             self._broadcast(msg_type, {"failed_prompt_id": prompt_id})
 
     def _run_loop(self) -> None:

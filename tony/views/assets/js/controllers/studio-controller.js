@@ -21,6 +21,7 @@ const extensions = {
 
 let ready = false;
 let submitting = false;
+let lastSubmitAtMs = 0;
 let lastSeed = null;
 const jobs = new Map();
 
@@ -137,7 +138,9 @@ setInterval(updateGenTimerDisplay, 1000);
 function renderGenerationCard(g) {
   if (!g) return;
   const activePhases = new Set(['loading', 'conditioning', 'sampling', 'decoding', 'saving', 'running']);
-  const isActive = activePhases.has(g.phase) || submitting || jobs.size > 0;
+  const queueEmpty = g.queue_active !== undefined && g.queue_pending !== undefined
+    && Number(g.queue_active) === 0 && Number(g.queue_pending) === 0;
+  const justSubmitted = submitting || (Date.now() - lastSubmitAtMs < 5000);
 
   if (g.queue_active !== undefined && g.queue_pending !== undefined) {
     const activeCount = Number(g.queue_active) || 0;
@@ -155,14 +158,60 @@ function renderGenerationCard(g) {
     return;
   }
 
-  if (g.event === 'execution_done' && g.completed_prompt_id) {
-    void finalizeJobResult(g.completed_prompt_id);
+  if (g.event === 'execution_error' || g.event === 'execution_interrupted' || (!justSubmitted && (g.phase === 'error' || g.phase === 'cancelled'))) {
+    if (g.failed_prompt_id) jobs.delete(g.failed_prompt_id);
+    else if (queueEmpty && !justSubmitted) jobs.clear();
+    if (!jobs.size && !submitting) {
+      genState.active = false;
+      genState.node = null;
+      $('#generation-card').hidden = true;
+      $('#activity').textContent = 'พร้อมรับงานถัดไป';
+      updateButton();
+      renderFlowInspector();
+    }
+    if (g.last_error || g.phase_label) notice(g.last_error || g.phase_label);
+    return;
   }
 
-  if (!isActive && g.phase !== 'loading' && g.phase !== 'sampling') {
+  if (g.event === 'execution_done' || (!justSubmitted && g.phase === 'done')) {
+    if (g.completed_prompt_id && g.completed_prompt_id !== 'auto') {
+      void finalizeJobResult(g.completed_prompt_id);
+    }
+    for (const jid of [...jobs.keys()]) {
+      void finalizeJobResult(jid);
+    }
+    void syncServerHistory();
+    if (queueEmpty && !justSubmitted) {
+      jobs.clear();
+      genState.active = false;
+      genState.node = null;
+      $('#generation-card').hidden = true;
+      $('#activity').textContent = 'สร้างวิดีโอสำเร็จ ✓';
+      updateButton();
+      renderFlowInspector();
+      return;
+    }
+  }
+
+  if (queueEmpty && !justSubmitted && !activePhases.has(g.phase)) {
+    for (const jid of [...jobs.keys()]) {
+      void finalizeJobResult(jid);
+    }
+    jobs.clear();
     genState.active = false;
     genState.node = null;
     $('#generation-card').hidden = true;
+    updateButton();
+    renderFlowInspector();
+    return;
+  }
+
+  const isActive = activePhases.has(g.phase) || submitting || jobs.size > 0;
+  if (!isActive) {
+    genState.active = false;
+    genState.node = null;
+    $('#generation-card').hidden = true;
+    updateButton();
     renderFlowInspector();
     return;
   }
@@ -1439,6 +1488,9 @@ async function syncServerHistory() {
   }
   server.sort(compareHistoryItems);
   const merged = server.slice(0, 40);
+  if (!genState.active && !$('#preview video') && merged.length > 0) {
+    showVideo(merged[0].url);
+  }
   if (JSON.stringify(local) === JSON.stringify(merged)) return;
   writeHistory(merged);
   renderHistory();
@@ -1479,10 +1531,34 @@ async function finalizeJobResult(id, fallbackSeed = null) {
     const entry = history[id];
     if (!entry) return false;
     if (entry.status?.status_str === 'error') {
-      throw new Error('ComfyUI ประมวลผลไม่สำเร็จ ตรวจ Logs ใน Comfy Console');
+      jobs.delete(id);
+      if (!jobs.size && !submitting) {
+        genState.active = false;
+        genState.node = null;
+        $('#generation-card').hidden = true;
+        $('#activity').textContent = 'พร้อมรับงานถัดไป';
+        updateButton();
+        renderFlowInspector();
+      }
+      notice('ComfyUI ประมวลผลไม่สำเร็จ ตรวจ Logs ใน Comfy Console');
+      return true;
     }
     const file = findVideo(entry.outputs);
-    if (!file) return false;
+    if (!file) {
+      if (entry.status?.completed) {
+        jobs.delete(id);
+        if (!jobs.size && !submitting) {
+          genState.active = false;
+          genState.node = null;
+          $('#generation-card').hidden = true;
+          $('#activity').textContent = 'พร้อมรับงานถัดไป';
+          updateButton();
+          renderFlowInspector();
+        }
+        return true;
+      }
+      return false;
+    }
     const url = videoUrl(file);
     const workflow = Array.isArray(entry.prompt) ? entry.prompt[2] : null;
     const seed = fallbackSeed ?? workflow?.noise?.inputs?.noise_seed ?? lastSeed;
@@ -1502,8 +1578,11 @@ async function finalizeJobResult(id, fallbackSeed = null) {
     renderHistory();
     jobs.delete(id);
     genState.active = false;
+    genState.node = null;
     $('#generation-card').hidden = true;
     $('#activity').textContent = jobs.size ? `${jobs.size} งานในคิว` : 'สร้างวิดีโอสำเร็จ ✓';
+    updateButton();
+    renderFlowInspector();
     notice('สร้างวิดีโอเสร็จสมบูรณ์ · Seed ' + (seed ?? '-'));
     return true;
   } catch (e) {
@@ -1585,6 +1664,7 @@ async function generate() {
   }
 
   submitting = true;
+  lastSubmitAtMs = Date.now();
   updateButton();
   genState = {
     active: true,
@@ -1626,7 +1706,7 @@ async function generate() {
     const result = await TonyApi.comfy('/prompt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: workflow, extra_data: extraData })
+      body: JSON.stringify({ prompt: workflow, client_id: 'tony-studio-bridge', extra_data: extraData })
     });
     if (!result.prompt_id) throw new Error('ไม่พบหมายเลขงาน');
     jobs.set(result.prompt_id, true);

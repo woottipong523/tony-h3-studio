@@ -33,9 +33,34 @@ if [[ "${TONY_ENABLE_SAGE:-1}" == "1" ]] && \
    ! grep -qxF -- "--use-sage-attention" "$ARGS_FILE"; then
   echo "--use-sage-attention" >> "$ARGS_FILE"
 fi
+if ! grep -qxF -- "--enable-triton-backend" "$ARGS_FILE"; then
+  echo "--enable-triton-backend" >> "$ARGS_FILE"
+fi
 if ! grep -qxF -- "--enable-cors-header" "$ARGS_FILE"; then
   echo "--enable-cors-header" >> "$ARGS_FILE"
 fi
+
+# Enable comfy_kitchen CUDA + Triton backends on CUDA 12.8+ and broadcast JSON WS events to all clients
+python3 - "$COMFYUI_DIR" <<'PY' || true
+import pathlib, sys
+root = pathlib.Path(sys.argv[1])
+q_file = root / "comfy" / "quant_ops.py"
+if q_file.is_file():
+    txt = q_file.read_text(encoding="utf-8")
+    new_txt = txt.replace("if cuda_version < (13,):", "if cuda_version < (12, 8):")
+    if new_txt != txt:
+        q_file.write_text(new_txt, encoding="utf-8")
+        print("[TONY] Enabled comfy_kitchen CUDA backend for CUDA 12.8+")
+
+s_file = root / "server.py"
+if s_file.is_file():
+    txt = s_file.read_text(encoding="utf-8")
+    target = "    def send_sync(self, event, data, sid=None):\n        self.loop.call_soon_threadsafe("
+    replacement = "    def send_sync(self, event, data, sid=None):\n        if isinstance(event, str):\n            sid = None\n        self.loop.call_soon_threadsafe("
+    if target in txt and "if isinstance(event, str):" not in txt:
+        s_file.write_text(txt.replace(target, replacement, 1), encoding="utf-8")
+        print("[TONY] Enabled multi-client WebSocket event broadcast in ComfyUI server.py")
+PY
 
 if [[ "${TONY_AUTO_DOWNLOAD_MODELS:-1}" == "1" ]]; then
   if [[ "${TONY_WAIT_FOR_MODELS:-0}" == "1" ]]; then

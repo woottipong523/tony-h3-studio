@@ -283,8 +283,14 @@ function createServer({ enableImages = CONFIG.enableImages } = {}) {
         videoAudio: video_audio && videoNames.length > 0
       });
     } catch (error) { throw new ToolError(error.message); }
+    try {
+      const q = await comfy('/queue');
+      if (!(q.queue_running?.length) && !(q.queue_pending?.length)) {
+        await comfy('/free', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ unload_models: true, free_memory: true }) }).catch(() => {});
+      }
+    } catch {}
     const extraData = typeof buildLiteGraph === 'function' ? { extra_pnginfo: { workflow: buildLiteGraph(workflow) } } : undefined;
-    const submitted = await comfy('/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: workflow, extra_data: extraData }) });
+    const submitted = await comfy('/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: workflow, client_id: 'tony-studio-bridge', extra_data: extraData }) });
     if (!submitted.prompt_id) throw new ToolError('ComfyUI did not return a job id: ' + JSON.stringify(submitted));
     const tags = {};
     imageNames.forEach((name, i) => { tags[`<Picture ${i + 1}>`] = name; });
