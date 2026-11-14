@@ -1,6 +1,6 @@
 comfy-aimdo==0.4.13
 comfy-angle==0.1.1
-comfy-kitchen==0.2.31
+comfy-kitchen[cublas]==0.2.31
 comfyui-embedded-docs==0.5.9
 comfyui_frontend_package==1.49.6
 comfyui_workflow_templates==0.11.43

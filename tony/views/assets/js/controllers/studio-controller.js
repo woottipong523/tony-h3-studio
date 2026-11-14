@@ -20,10 +20,65 @@ let genState = {
   etaSeconds: null,
   etaUpdatedAtMs: null,
   phaseLabel: '',
+  node: null,
+  completedNodes: [],
+  cachedNodes: [],
+  activeWorkflow: null,
   percent: 0,
   step: 0,
-  maxSteps: 0
+  maxSteps: 0,
+  stepPercent: 0
 };
+
+const PIPELINE_ORDER = [
+  'refs',
+  'model',
+  'turbo',
+  'clip',
+  'vae',
+  'audioVae',
+  'reference',
+  'sage',
+  'noise',
+  'guider',
+  'sampler',
+  'schedule',
+  'sample',
+  'decode',
+  'decodeAudio',
+  'video',
+  'save'
+];
+
+const NODE_CLASS_LABELS = {
+  refs: 'LoadImage / VHS_LoadVideo / LoadAudio',
+  model: 'UNETLoader',
+  turbo: 'LoraLoaderModelOnly',
+  clip: 'CLIPLoader',
+  vae: 'VAELoader',
+  audioVae: 'VAELoader',
+  reference: 'MiniMaxH3ReferenceToVideo',
+  sage: 'SageAttentionEngine',
+  noise: 'RandomNoise',
+  guider: 'BasicGuider',
+  sampler: 'KSamplerSelect',
+  schedule: 'BasicScheduler',
+  sample: 'SamplerCustomAdvanced',
+  decode: 'VAEDecode',
+  decodeAudio: 'VAEDecodeAudio',
+  video: 'CreateVideo',
+  save: 'SaveVideo'
+};
+
+function normalizeNodeId(rawNode) {
+  if (!rawNode) return null;
+  const s = String(rawNode);
+  if (s.startsWith('image') || s.startsWith('refVideo') || s.startsWith('audio')) {
+    if (s === 'audioVae') return 'audioVae';
+    return 'refs';
+  }
+  return s;
+}
 
 let logStream = null;
 let logOffset = 0;
@@ -96,17 +151,31 @@ function renderGenerationCard(g) {
 
   if (!isActive && g.phase !== 'loading' && g.phase !== 'sampling') {
     genState.active = false;
+    genState.node = null;
     $('#generation-card').hidden = true;
+    renderFlowInspector();
     return;
   }
 
   // Keep local uploading/queued status until ComfyUI WebSocket reports an active phase
   if (!activePhases.has(g.phase) && g.phase !== 'done' && (submitting || jobs.size > 0)) {
     updateGenTimerDisplay();
+    renderPipelineStrip();
+    renderFlowInspector();
     return;
   }
 
   genState.active = true;
+  if (g.node !== undefined) genState.node = g.node;
+  if (Array.isArray(g.completed_nodes)) genState.completedNodes = g.completed_nodes;
+  if (Array.isArray(g.cached_nodes)) genState.cachedNodes = g.cached_nodes;
+  if (g.active_workflow && typeof g.active_workflow === 'object') {
+    genState.activeWorkflow = g.active_workflow;
+  }
+  if (g.step !== undefined) genState.step = Number(g.step) || 0;
+  if (g.max_steps !== undefined) genState.maxSteps = Number(g.max_steps) || 0;
+  if (g.step_percent !== undefined) genState.stepPercent = Number(g.step_percent) || 0;
+
   $('#generation-card').hidden = false;
   if (g.started_at) {
     genState.startedAtMs = g.started_at * 1000;
@@ -116,9 +185,22 @@ function renderGenerationCard(g) {
 
   const pct = Math.min(100, Math.max(0, Math.round(Number(g.percent) || 0)));
   genState.percent = pct;
-  $('#gen-phase-label').textContent = g.phase_label || 'กำลังสร้างวิดีโอ…';
+  genState.phaseLabel = g.phase_label || 'กำลังสร้างวิดีโอ…';
+  $('#gen-phase-label').textContent = genState.phaseLabel;
   $('#gen-percent').textContent = `${pct}%`;
   $('#gen-progress-bar').value = pct;
+
+  const nodeBadge = $('#gen-node-badge');
+  if (nodeBadge) {
+    const normNode = normalizeNodeId(genState.node);
+    if (normNode) {
+      nodeBadge.hidden = false;
+      const cls = NODE_CLASS_LABELS[normNode] || genState.node;
+      nodeBadge.textContent = `Node: ${genState.node} (${cls})`;
+    } else {
+      nodeBadge.hidden = true;
+    }
+  }
 
   const stepBadge = $('#gen-step-badge');
   if (g.max_steps > 0) {
@@ -136,6 +218,483 @@ function renderGenerationCard(g) {
   }
 
   updateGenTimerDisplay();
+  renderPipelineStrip();
+  renderFlowInspector();
+}
+
+function getNodeState(nodeKey) {
+  if (!genState.active) return 'ready';
+  const activeNorm = normalizeNodeId(genState.node);
+  if (activeNorm === nodeKey) return 'executing';
+
+  const cachedSet = new Set((genState.cachedNodes || []).map(normalizeNodeId));
+  const doneSet = new Set((genState.completedNodes || []).map(normalizeNodeId));
+
+  if (cachedSet.has(nodeKey)) return 'cached';
+  if (doneSet.has(nodeKey)) return 'done';
+
+  if (activeNorm) {
+    const activeIdx = PIPELINE_ORDER.indexOf(activeNorm);
+    const nodeIdx = PIPELINE_ORDER.indexOf(nodeKey);
+    if (activeIdx > -1 && nodeIdx > -1 && nodeIdx < activeIdx) {
+      return 'done';
+    }
+  }
+  return 'pending';
+}
+
+function getFlowSnapshotParams() {
+  const wf = genState.active && genState.activeWorkflow ? genState.activeWorkflow : null;
+  const sizes = { '0.4': [864, 480], '0.7': [1152, 640], '1': [1376, 768], '1.2': [1504, 832], '1.5': [1632, 928], '2': [1920, 1088] };
+  const ratio = $('#ratio')?.value || '16:9';
+  const mp = String($('#quality')?.value || '0.7');
+  let [w, h] = sizes[mp] || [1152, 640];
+  if (ratio === '9:16') [w, h] = [h, w];
+  if (ratio === '1:1') w = h = Math.round(Math.sqrt(Number(mp) * 1e6) / 32) * 32;
+
+  const duration = Number($('#duration')?.value || 5);
+  const calcFrames = Math.ceil((Math.round(duration * 24) - 5) / 17) * 17 + 5;
+  const modelKey = $('#model-select')?.value || 'original';
+  const modelFiles = (globalThis.TonyWorkflow && globalThis.TonyWorkflow.MODELS) || {};
+
+  const wfRef = wf?.reference?.inputs || {};
+  const width = wfRef.width || w;
+  const height = wfRef.height || h;
+  const frames = wfRef.length || calcFrames;
+  const promptText = (wfRef.prompt || $('#prompt')?.value || '').trim() || '(ยังไม่ได้กรอก Prompt)';
+
+  const unetName = wf?.model?.inputs?.unet_name || modelFiles[modelKey] || 'minimax_h3_ref2va_pruned_int8_convrot.safetensors';
+  const loraStrength = wf?.turbo?.inputs?.strength_model ?? Number($('#lora-strength')?.value || 0.85).toFixed(2);
+  const clipName = wf?.clip?.inputs?.clip_name || 'qwen3vl_32b_minimax_h3_nvfp4_awq.safetensors';
+  const vaeName = wf?.vae?.inputs?.vae_name || 'minimax_h3_video_vae_fp16.safetensors';
+  const audioVaeName = wf?.audioVae?.inputs?.vae_name || 'minimax_h3_audio_vae_fp32.safetensors';
+  const seedVal = wf?.noise?.inputs?.noise_seed ?? ($('#seed')?.value || 'Auto');
+  const samplerName = wf?.sampler?.inputs?.sampler_name || $('#sampler')?.value || 'res_multistep';
+  const stepsVal = wf?.schedule?.inputs?.steps ?? Number($('#steps')?.value || 8);
+  const schedulerName = wf?.schedule?.inputs?.scheduler || 'simple';
+  const savePrefix = wf?.save?.inputs?.filename_prefix || (modelKey === 'singularity' ? 'video/Tony_H3_v3_Singularity' : 'video/Tony_H3_v3');
+  const attMode = wf?.sage ? 'KJ Memory Sage Patch' : ($('#attention-mode')?.value === 'kj_memory' ? 'KJ Memory Sage Patch' : 'Global SageAttention (sm_120)');
+
+  let imgCount = media.image.length;
+  let vidCount = ($('#video-enabled')?.checked ? media.video.length : 0);
+  let audCount = ($('#audio-enabled')?.checked ? media.audio.length : 0);
+  if (wf) {
+    const keys = Object.keys(wf);
+    imgCount = keys.filter(k => k.startsWith('image')).length;
+    vidCount = keys.filter(k => k.startsWith('refVideo')).length;
+    audCount = keys.filter(k => /^audio\d+$/.test(k)).length;
+  }
+
+  return {
+    unetName,
+    loraStrength,
+    clipName,
+    vaeName,
+    audioVaeName,
+    width,
+    height,
+    frames,
+    durationSec: Math.round(frames / 24),
+    promptText,
+    seedVal,
+    samplerName,
+    stepsVal,
+    schedulerName,
+    savePrefix,
+    attMode,
+    imgCount,
+    vidCount,
+    audCount,
+    videoAudio: Boolean($('#video-audio')?.checked)
+  };
+}
+
+function renderPipelineStrip() {
+  const strip = $('#gen-pipeline-strip');
+  if (!strip) return;
+  const items = [
+    { id: 'refs', label: '1. Refs' },
+    { id: 'model', label: '2. UNET' },
+    { id: 'turbo', label: '3. LoRA' },
+    { id: 'clip', label: '4. Qwen3-VL' },
+    { id: 'vae', label: '5. VAE' },
+    { id: 'reference', label: '6. Ref2VA Cond' },
+    { id: 'sample', label: genState.maxSteps > 0 ? `7. Sampler (${genState.step}/${genState.maxSteps})` : '7. Sampler' },
+    { id: 'decode', label: '8. Decode' },
+    { id: 'video', label: '9. Mux 24fps' },
+    { id: 'save', label: '10. Save MP4' }
+  ];
+
+  strip.replaceChildren();
+  items.forEach((item, idx) => {
+    let state = getNodeState(item.id);
+    if (item.id === 'vae' && (getNodeState('vae') === 'executing' || getNodeState('audioVae') === 'executing')) {
+      state = 'executing';
+    }
+    if (item.id === 'sample' && ['noise', 'guider', 'sampler', 'schedule', 'sample'].some(k => getNodeState(k) === 'executing')) {
+      state = 'executing';
+    }
+    if (item.id === 'decode' && (getNodeState('decode') === 'executing' || getNodeState('decodeAudio') === 'executing')) {
+      state = 'executing';
+    }
+
+    const pill = document.createElement('button');
+    pill.type = 'button';
+    pill.className = 'pipeline-pill';
+    if (state === 'executing') pill.classList.add('is-executing');
+    else if (state === 'done' || state === 'cached') pill.classList.add('is-done');
+
+    const dot = document.createElement('span');
+    dot.className = 'pill-dot';
+    const text = document.createElement('span');
+    text.textContent = (state === 'done' || state === 'cached') ? `✓ ${item.label}` : item.label;
+    pill.append(dot, text);
+
+    pill.onclick = () => {
+      openFlowInspector(item.id);
+    };
+    strip.append(pill);
+
+    if (idx < items.length - 1) {
+      const arrow = document.createElement('span');
+      arrow.className = 'pipeline-arrow';
+      arrow.textContent = '→';
+      strip.append(arrow);
+    }
+  });
+}
+
+function renderFlowInspector() {
+  const inspector = $('#flow-inspector');
+  const canvas = $('#flow-canvas');
+  if (!inspector || !canvas || inspector.hidden) return;
+
+  const p = getFlowSnapshotParams();
+  const indicator = $('#flow-live-indicator');
+  const statusBadge = $('#flow-status-badge');
+  if (indicator) indicator.classList.toggle('is-active', genState.active);
+  if (statusBadge) {
+    if (genState.active) {
+      const activeNodeStr = genState.node ? `Node #${genState.node} (${NODE_CLASS_LABELS[normalizeNodeId(genState.node)] || genState.node})` : 'กำลังเตรียมโหนด';
+      const stepStr = genState.maxSteps > 0 ? ` · Step ${genState.step}/${genState.maxSteps} (${Math.round(genState.stepPercent)}%)` : '';
+      statusBadge.textContent = `LIVE EXECUTING · ${activeNodeStr}${stepStr}`;
+    } else {
+      statusBadge.textContent = 'READY · แสดงโครงสร้างโหนดและค่าพารามิเตอร์ปัจจุบันแบบ Real-time';
+    }
+  }
+
+  const stages = [
+    {
+      title: 'STAGE 1 · LOADERS & INPUTS',
+      sub: '4–5 Nodes',
+      nodes: [
+        {
+          id: 'refs',
+          title: 'Multi-Modal Inputs',
+          classType: 'LoadImage / VHS_LoadVideo / LoadAudio',
+          params: [
+            ['Image Refs', `${p.imgCount} / 9 ภาพ`],
+            ['Video Ref', p.vidCount ? `1 คลิป (${p.videoAudio ? '+Audio' : 'Muted'})` : 'ไม่ใช้ (0/1)'],
+            ['Audio Refs', `${p.audCount} / 3 ไฟล์เสียง`]
+          ]
+        },
+        {
+          id: 'model',
+          title: 'Base UNET Model',
+          classType: 'UNETLoader (#model)',
+          params: [
+            ['unet_name', p.unetName.replace('.safetensors', '')],
+            ['weight_dtype', 'default (INT8/FP8)']
+          ]
+        },
+        {
+          id: 'turbo',
+          title: '4-Step Turbo LoRA',
+          classType: 'LoraLoaderModelOnly (#turbo)',
+          params: [
+            ['lora_name', 'minimax_h3_ref2v_turbo_4step'],
+            ['strength_model', String(p.loraStrength)]
+          ]
+        },
+        {
+          id: 'clip',
+          title: 'Text Encoder (Qwen3-VL)',
+          classType: 'CLIPLoader (#clip)',
+          params: [
+            ['clip_name', p.clipName.replace('.safetensors', '')],
+            ['type', 'minimax · default']
+          ]
+        },
+        {
+          id: 'vae',
+          title: 'Video & Audio VAE',
+          classType: 'VAELoader (#vae + #audioVae)',
+          params: [
+            ['video_vae', p.vaeName.replace('.safetensors', '')],
+            ['audio_vae', p.audioVaeName.replace('.safetensors', '')]
+          ]
+        }
+      ]
+    },
+    {
+      title: 'STAGE 2 · CONDITIONING',
+      sub: 'Ref2VA + Sage',
+      nodes: [
+        {
+          id: 'reference',
+          title: 'MiniMax H3 Ref2VA',
+          classType: 'MiniMaxH3ReferenceToVideo (#reference)',
+          params: [
+            ['Resolution', `${p.width} × ${p.height} px`],
+            ['Length', `${p.frames} เฟรม (~${p.durationSec}s @ 24fps)`],
+            ['ref_image_size', 'match']
+          ],
+          prompt: p.promptText
+        },
+        {
+          id: 'sage',
+          title: 'SageAttention Kernel',
+          classType: 'SageAttention (#sage)',
+          params: [
+            ['mode', p.attMode],
+            ['arch', 'Blackwell sm_120 / CUDA']
+          ]
+        }
+      ]
+    },
+    {
+      title: 'STAGE 3 · DIFFUSION SAMPLER',
+      sub: 'Denoising Core',
+      nodes: [
+        {
+          id: 'noise',
+          title: 'Random Noise (Seed)',
+          classType: 'RandomNoise (#noise)',
+          params: [
+            ['noise_seed', String(p.seedVal)]
+          ]
+        },
+        {
+          id: 'guider',
+          title: 'Conditioning Guider',
+          classType: 'BasicGuider (#guider)',
+          params: [
+            ['model', '← #turbo / #sage'],
+            ['conditioning', '← #reference [0]']
+          ]
+        },
+        {
+          id: 'sampler',
+          title: 'Sampler & Scheduler',
+          classType: 'KSamplerSelect + BasicScheduler',
+          params: [
+            ['sampler_name', p.samplerName],
+            ['scheduler', `${p.schedulerName} · ${p.stepsVal} Steps`],
+            ['denoise', '1.00']
+          ]
+        },
+        {
+          id: 'sample',
+          title: 'SamplerCustomAdvanced',
+          classType: 'SamplerCustomAdvanced (#sample)',
+          params: [
+            ['Step Progress', genState.active && genState.maxSteps > 0 ? `Step ${genState.step} / ${genState.maxSteps}` : `0 / ${p.stepsVal} Steps`],
+            ['Step Completion', genState.active && genState.maxSteps > 0 ? `${Math.round(genState.stepPercent)}%` : 'รอเริ่ม Sampling'],
+            ['latent_image', '← #reference [1]']
+          ],
+          progress: genState.active ? (genState.maxSteps > 0 ? Math.round(genState.stepPercent) : (getNodeState('sample') === 'executing' ? 8 : 0)) : 0
+        }
+      ]
+    },
+    {
+      title: 'STAGE 4 · DECODE & SAVE',
+      sub: 'Video + Audio MP4',
+      nodes: [
+        {
+          id: 'decode',
+          title: 'Video VAE Decode',
+          classType: 'VAEDecode (#decode)',
+          params: [
+            ['samples', '← #sample [0]'],
+            ['vae', '← #vae (FP16)']
+          ]
+        },
+        {
+          id: 'decodeAudio',
+          title: 'Audio VAE Decode',
+          classType: 'VAEDecodeAudio (#decodeAudio)',
+          params: [
+            ['samples', '← #sample [0]'],
+            ['vae', '← #audioVae (FP32)']
+          ]
+        },
+        {
+          id: 'video',
+          title: 'Create Video (Muxer)',
+          classType: 'CreateVideo (#video)',
+          params: [
+            ['fps', '24 FPS Cinema'],
+            ['bit_depth', '8-bit + Stereo Audio']
+          ]
+        },
+        {
+          id: 'save',
+          title: 'Save Video (MP4)',
+          classType: 'SaveVideo (#save)',
+          params: [
+            ['filename_prefix', p.savePrefix],
+            ['format / codec', 'auto (MP4 / H.264)']
+          ]
+        }
+      ]
+    }
+  ];
+
+  canvas.replaceChildren();
+  for (const stage of stages) {
+    const col = document.createElement('div');
+    col.className = 'flow-stage';
+
+    const head = document.createElement('div');
+    head.className = 'flow-stage-header';
+    const hTitle = document.createElement('span');
+    hTitle.textContent = stage.title;
+    const hSub = document.createElement('small');
+    hSub.textContent = stage.sub;
+    head.append(hTitle, hSub);
+    col.append(head);
+
+    for (const n of stage.nodes) {
+      let state = getNodeState(n.id);
+      if (n.id === 'vae' && getNodeState('audioVae') === 'executing') state = 'executing';
+      if (n.id === 'sampler' && getNodeState('schedule') === 'executing') state = 'executing';
+
+      const card = document.createElement('article');
+      card.className = 'flow-node';
+      card.dataset.nodeId = n.id;
+      if (state === 'executing') card.classList.add('is-executing');
+      else if (state === 'done' || state === 'cached') card.classList.add('is-done');
+
+      const nHead = document.createElement('div');
+      nHead.className = 'flow-node-head';
+      const nTitleWrap = document.createElement('div');
+      nTitleWrap.className = 'flow-node-title';
+      const nDot = document.createElement('span');
+      nDot.className = 'flow-node-dot';
+      const nTitle = document.createElement('b');
+      nTitle.textContent = n.title;
+      nTitleWrap.append(nDot, nTitle);
+
+      const nBadge = document.createElement('span');
+      nBadge.className = 'flow-node-badge';
+      if (state === 'executing') {
+        nBadge.textContent = n.id === 'sample' && genState.maxSteps > 0
+          ? `● STEP ${genState.step}/${genState.maxSteps}`
+          : '● EXECUTING';
+      } else if (state === 'cached') {
+        nBadge.textContent = '⚡ CACHED';
+      } else if (state === 'done') {
+        nBadge.textContent = '✓ DONE';
+      } else if (state === 'pending') {
+        nBadge.textContent = '○ QUEUED';
+      } else {
+        nBadge.textContent = 'READY';
+      }
+
+      nHead.append(nTitleWrap, nBadge);
+
+      const nClass = document.createElement('div');
+      nClass.className = 'flow-node-class';
+      nClass.textContent = n.classType;
+
+      const nBody = document.createElement('div');
+      nBody.className = 'flow-node-body';
+
+      for (const [k, v] of n.params) {
+        const row = document.createElement('div');
+        row.className = 'flow-param';
+        const kEl = document.createElement('span');
+        kEl.className = 'flow-param-key';
+        kEl.textContent = k;
+        const vEl = document.createElement('span');
+        vEl.className = 'flow-param-val';
+        vEl.textContent = v;
+        vEl.title = v;
+        row.append(kEl, vEl);
+        nBody.append(row);
+      }
+
+      if (n.prompt) {
+        const pBox = document.createElement('div');
+        pBox.className = 'flow-param-prompt';
+        pBox.textContent = `Prompt: "${n.prompt.slice(0, 120)}${n.prompt.length > 120 ? '…' : ''}"`;
+        pBox.title = n.prompt;
+        nBody.append(pBox);
+      }
+
+      if (state === 'executing' || (n.id === 'sample' && n.progress > 0)) {
+        const progWrap = document.createElement('div');
+        progWrap.className = 'flow-node-progress';
+        const progBar = document.createElement('div');
+        progBar.className = 'flow-node-progress-bar';
+        const pct = n.id === 'sample' && genState.maxSteps > 0 ? Math.max(6, Math.round(genState.stepPercent)) : 100;
+        progBar.style.width = `${pct}%`;
+        progWrap.append(progBar);
+        nBody.append(progWrap);
+      }
+
+      card.append(nHead, nClass, nBody);
+      col.append(card);
+    }
+    canvas.append(col);
+  }
+}
+
+function setFlowInspectorOpen(open, focusNodeId = null) {
+  const inspector = $('#flow-inspector');
+  if (!inspector) return;
+  inspector.hidden = !open;
+  const qBtn = $('#queue-active-btn');
+  const tBtn = $('#toggle-flow-btn');
+  const qHint = $('#queue-flow-hint');
+  if (qBtn) {
+    qBtn.classList.toggle('is-open', open);
+    qBtn.setAttribute('aria-expanded', String(open));
+  }
+  if (qHint) {
+    qHint.textContent = open ? 'ซ่อน Flow ▴' : 'ดู Flow ▾';
+  }
+  if (tBtn) {
+    tBtn.setAttribute('aria-expanded', String(open));
+    tBtn.innerHTML = `<span class="flow-toggle-dot"></span> ${open ? 'ซ่อน Flow โหนด ▴' : 'ดู Flow โหนด & ตั้งค่า ▾'}`;
+  }
+  if (open) {
+    renderFlowInspector();
+    if (focusNodeId) {
+      const target = inspector.querySelector(`[data-node-id="${focusNodeId}"]`);
+      if (target) target.scrollIntoView({ behavior: 'smooth', block: 'nearest', inline: 'center' });
+    }
+  }
+}
+
+function openFlowInspector(focusNodeId = null) {
+  setFlowInspectorOpen(true, focusNodeId);
+}
+
+if ($('#queue-active-btn')) {
+  $('#queue-active-btn').onclick = () => {
+    const inspector = $('#flow-inspector');
+    setFlowInspectorOpen(inspector ? inspector.hidden : true);
+  };
+}
+if ($('#toggle-flow-btn')) {
+  $('#toggle-flow-btn').onclick = () => {
+    const inspector = $('#flow-inspector');
+    setFlowInspectorOpen(inspector ? inspector.hidden : true);
+  };
+}
+if ($('#close-flow-btn')) {
+  $('#close-flow-btn').onclick = () => setFlowInspectorOpen(false);
 }
 
 function renderDisk(disk) {
@@ -260,10 +819,12 @@ function renderTags() {
       b.onclick = () => {
         $('#prompt').value += ' ' + tag;
         $('#prompt').focus();
+        renderFlowInspector();
       };
       return b;
     })
   );
+  renderFlowInspector();
 }
 
 function addFilesToKind(kind, fileList) {
@@ -1006,13 +1567,19 @@ async function generate() {
     etaSeconds: null,
     etaUpdatedAtMs: null,
     phaseLabel: 'กำลังอัปโหลดไฟล์อ้างอิง…',
+    node: selected.images.length || selected.videos.length || selected.audios.length ? 'refs' : 'model',
+    completedNodes: [],
+    cachedNodes: [],
+    activeWorkflow: null,
     percent: 1,
     step: 0,
-    maxSteps: settings.steps
+    maxSteps: settings.steps,
+    stepPercent: 0
   };
   renderGenerationCard({
     phase: 'loading',
     phase_label: 'กำลังอัปโหลดไฟล์อ้างอิง…',
+    node: genState.node,
     percent: 1,
     step: 0,
     max_steps: settings.steps
@@ -1026,10 +1593,15 @@ async function generate() {
       for (const file of files) names[kind].push(await upload(file));
     }
     const workflow = TonyWorkflow.buildWorkflow({ ...settings, ...names });
+    genState.activeWorkflow = workflow;
+    renderFlowInspector();
+    const extraData = typeof TonyWorkflow.buildLiteGraph === 'function'
+      ? { extra_pnginfo: { workflow: TonyWorkflow.buildLiteGraph(workflow) } }
+      : undefined;
     const result = await TonyApi.comfy('/prompt', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ prompt: workflow, client_id: 'tony-studio-bridge' })
+      body: JSON.stringify({ prompt: workflow, extra_data: extraData })
     });
     if (!result.prompt_id) throw new Error('ไม่พบหมายเลขงาน');
     jobs.set(result.prompt_id, true);
@@ -1038,7 +1610,9 @@ async function generate() {
     void monitor(result.prompt_id, seed);
   } catch (e) {
     genState.active = false;
+    genState.node = null;
     $('#generation-card').hidden = true;
+    renderFlowInspector();
     notice(String(e.message));
   } finally {
     submitting = false;
@@ -1219,7 +1793,18 @@ document.addEventListener('keydown', (e) => {
 // Initialize all setting dropdowns
 ['#model-select', '#ratio', '#quality', '#sampler', '#attention-mode'].forEach(id => {
   const el = $(id);
-  if (el) setupTailwindDropdown(el);
+  if (el) {
+    setupTailwindDropdown(el);
+    el.addEventListener('change', () => renderFlowInspector());
+  }
+});
+
+['#duration', '#lora-strength', '#steps', '#seed', '#prompt'].forEach(id => {
+  const el = $(id);
+  if (el) {
+    el.addEventListener('input', () => renderFlowInspector());
+    el.addEventListener('change', () => renderFlowInspector());
+  }
 });
 
 $('#generate').onclick = generate;

@@ -24,13 +24,25 @@ def fetch_queue_counts() -> dict:
         connection.request("GET", "/queue", headers={"Connection": "close"})
         resp = connection.getresponse()
         if resp.status != 200:
-            return {"active": 0, "pending": 0, "ok": False}
+            return {"active": 0, "pending": 0, "ok": False, "running_workflow": None, "running_prompt_id": None}
         data = json.loads(resp.read().decode("utf-8", errors="replace"))
-        running = len(data.get("queue_running") or [])
-        pending = len(data.get("queue_pending") or [])
-        return {"active": running, "pending": pending, "ok": True}
+        running_list = data.get("queue_running") or []
+        pending_list = data.get("queue_pending") or []
+        running_wf = None
+        running_pid = None
+        if running_list and isinstance(running_list[0], list) and len(running_list[0]) >= 3:
+            running_pid = running_list[0][1]
+            if isinstance(running_list[0][2], dict):
+                running_wf = running_list[0][2]
+        return {
+            "active": len(running_list),
+            "pending": len(pending_list),
+            "ok": True,
+            "running_workflow": running_wf,
+            "running_prompt_id": running_pid,
+        }
     except Exception:
-        return {"active": 0, "pending": 0, "ok": False}
+        return {"active": 0, "pending": 0, "ok": False, "running_workflow": None, "running_prompt_id": None}
     finally:
         connection.close()
 
@@ -83,6 +95,9 @@ class ComfyWSBridge:
             "phase": "idle",
             "phase_label": "พร้อมรับงาน",
             "node": None,
+            "completed_nodes": [],
+            "cached_nodes": [],
+            "active_workflow": None,
             "step": 0,
             "max_steps": 0,
             "percent": 0.0,
@@ -157,12 +172,15 @@ class ComfyWSBridge:
                 if q_info["ok"]:
                     self._state["queue_active"] = q_info["active"]
                     self._state["queue_pending"] = q_info["pending"]
+                    if q_info.get("running_workflow"):
+                        self._state["active_workflow"] = q_info["running_workflow"]
                 self._state["updated_at"] = now
             self._broadcast("queue")
             return
 
         if msg_type == "execution_start":
             prompt_id = data.get("prompt_id")
+            q_info = fetch_queue_counts()
             with self._lock:
                 self._step_times = []
                 self._state.update(
@@ -170,6 +188,9 @@ class ComfyWSBridge:
                     phase="loading",
                     phase_label="กำลังเตรียมโมเดลเข้า VRAM…",
                     node=None,
+                    completed_nodes=[],
+                    cached_nodes=[],
+                    active_workflow=q_info.get("running_workflow") or self._state.get("active_workflow"),
                     step=0,
                     max_steps=0,
                     percent=2.0,
@@ -183,6 +204,35 @@ class ComfyWSBridge:
             self._broadcast("execution_start")
             return
 
+        if msg_type == "execution_cached":
+            cached = [str(n) for n in (data.get("nodes") or []) if n is not None]
+            with self._lock:
+                c_list = list(self._state.get("cached_nodes") or [])
+                d_list = list(self._state.get("completed_nodes") or [])
+                for n in cached:
+                    if n not in c_list:
+                        c_list.append(n)
+                    if n not in d_list:
+                        d_list.append(n)
+                self._state["cached_nodes"] = c_list
+                self._state["completed_nodes"] = d_list
+                self._state["updated_at"] = now
+            self._broadcast("execution_cached")
+            return
+
+        if msg_type == "executed":
+            done_node = data.get("node")
+            if done_node is not None:
+                done_str = str(done_node)
+                with self._lock:
+                    d_list = list(self._state.get("completed_nodes") or [])
+                    if done_str not in d_list:
+                        d_list.append(done_str)
+                    self._state["completed_nodes"] = d_list
+                    self._state["updated_at"] = now
+                self._broadcast("executed")
+            return
+
         if msg_type == "executing":
             node = data.get("node")
             prompt_id = data.get("prompt_id") or self._state.get("prompt_id")
@@ -190,11 +240,22 @@ class ComfyWSBridge:
                 q_info = fetch_queue_counts()
                 with self._lock:
                     started = self._state.get("started_at") or now
+                    prev_node = self._state.get("node")
+                    d_list = list(self._state.get("completed_nodes") or [])
+                    if prev_node and prev_node not in d_list:
+                        d_list.append(prev_node)
+                    wf = self._state.get("active_workflow")
+                    if isinstance(wf, dict):
+                        for k in wf.keys():
+                            ks = str(k)
+                            if ks not in d_list:
+                                d_list.append(ks)
                     self._state.update(
                         prompt_id=None,
                         phase="done",
                         phase_label="สร้างวิดีโอเสร็จสมบูรณ์",
                         node=None,
+                        completed_nodes=d_list,
                         percent=100.0,
                         step_percent=100.0,
                         elapsed_seconds=max(0, int(round(now - started))),
@@ -207,12 +268,25 @@ class ComfyWSBridge:
                 self._broadcast("execution_done", {"completed_prompt_id": prompt_id})
                 return
 
+            need_wf = False
+            with self._lock:
+                if not self._state.get("active_workflow"):
+                    need_wf = True
+            q_wf = fetch_queue_counts().get("running_workflow") if need_wf else None
+
             phase, label, base_pct = describe_node(str(node))
             with self._lock:
                 if not self._state.get("started_at"):
                     self._state["started_at"] = now
                 if prompt_id:
                     self._state["prompt_id"] = prompt_id
+                if q_wf:
+                    self._state["active_workflow"] = q_wf
+                prev_node = self._state.get("node")
+                d_list = list(self._state.get("completed_nodes") or [])
+                if prev_node and prev_node != str(node) and prev_node not in d_list:
+                    d_list.append(prev_node)
+                self._state["completed_nodes"] = d_list
                 self._state["node"] = str(node)
                 self._state["phase"] = phase
                 self._state["phase_label"] = label
@@ -298,6 +372,8 @@ class ComfyWSBridge:
                     if q_info["ok"]:
                         self._state["queue_active"] = q_info["active"]
                         self._state["queue_pending"] = q_info["pending"]
+                        if q_info.get("running_workflow"):
+                            self._state["active_workflow"] = q_info["running_workflow"]
                 self._broadcast("ws_connected")
 
                 while self._running:

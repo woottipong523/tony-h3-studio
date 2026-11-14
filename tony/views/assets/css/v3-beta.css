@@ -637,31 +637,39 @@ textarea#prompt:focus {
   transition: all 0.16s ease;
 }
 
-.queue-item.active.has-jobs {
-  border-color: color-mix(in srgb, var(--green) 45%, var(--line));
-  background: color-mix(in srgb, var(--green) 12%, var(--card));
+.queue-item.active {
   cursor: pointer;
-  box-shadow: 0 0 14px -2px rgba(16, 185, 129, 0.35);
 }
 
-.queue-item.active.has-jobs:hover {
+.queue-item.active:hover {
+  border-color: var(--line-strong);
+  background: var(--card-hover);
+  transform: translateY(-1px);
+}
+
+.queue-item.active.has-jobs,
+.queue-item.active.is-open {
+  border-color: color-mix(in srgb, #22c55e 55%, var(--line));
+  background: color-mix(in srgb, #22c55e 14%, var(--card));
+  box-shadow: 0 0 16px -2px rgba(34, 197, 94, 0.4);
+}
+
+.queue-item.active.has-jobs:hover,
+.queue-item.active.is-open:hover {
   transform: translateY(-1px);
   filter: brightness(1.08);
 }
 
 .queue-flow-hint {
-  display: none;
-  padding: 2px 6px;
+  display: inline-block;
+  padding: 2px 7px;
   border-radius: 999px;
-  background: color-mix(in srgb, var(--green) 20%, transparent);
-  color: var(--green);
+  background: color-mix(in srgb, #22c55e 18%, var(--card-deep));
+  color: #22c55e;
+  border: 1px solid color-mix(in srgb, #22c55e 38%, transparent);
   font-size: 10px;
   font-weight: 700;
   margin-left: 2px;
-}
-
-.queue-item.active.has-jobs .queue-flow-hint {
-  display: inline-block;
 }
 
 .queue-item > div {
@@ -742,6 +750,30 @@ textarea#prompt:focus {
   50% { opacity: 0.35; }
 }
 
+.gen-node-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 2px 9px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.16);
+  border: 1px solid rgba(34, 197, 94, 0.55);
+  color: #22c55e;
+  font-size: 11px;
+  font-weight: 700;
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.25);
+}
+
+.gen-node-badge::before {
+  content: '';
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+  animation: pulse-dot 1.1s infinite ease-in-out;
+}
+
 .gen-step-badge {
   padding: 2px 9px;
   border-radius: 999px;
@@ -750,6 +782,86 @@ textarea#prompt:focus {
   font-size: 11px;
   font-weight: 600;
   font-variant-numeric: tabular-nums;
+}
+
+/* Compact Real-Time Node Pipeline Strip inside Generation Card */
+.gen-pipeline-strip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  overflow-x: auto;
+  padding: 6px 2px 10px;
+  scrollbar-width: thin;
+}
+
+.pipeline-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border-radius: 7px;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  border: 1px solid var(--line);
+  background: var(--card-deep);
+  color: var(--muted);
+  cursor: pointer;
+  transition: all 0.18s ease;
+  flex-shrink: 0;
+}
+
+.pipeline-pill:hover {
+  border-color: var(--line-strong);
+  color: var(--text);
+}
+
+.pipeline-pill .pill-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+  opacity: 0.5;
+}
+
+.pipeline-pill.is-done {
+  border-color: rgba(16, 185, 129, 0.4);
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.pipeline-pill.is-done .pill-dot {
+  background: #10b981;
+  opacity: 1;
+}
+
+.pipeline-pill.is-executing {
+  border-color: #22c55e;
+  background: linear-gradient(135deg, rgba(34, 197, 94, 0.25) 0%, rgba(16, 185, 129, 0.15) 100%);
+  color: #4ade80;
+  font-weight: 700;
+  box-shadow: 0 0 0 1px rgba(34, 197, 94, 0.4), 0 0 14px rgba(34, 197, 94, 0.35);
+  transform: translateY(-1px);
+}
+
+html:not(.dark) .pipeline-pill.is-executing {
+  color: #15803d;
+  background: rgba(34, 197, 94, 0.18);
+}
+
+.pipeline-pill.is-executing .pill-dot {
+  background: #22c55e;
+  opacity: 1;
+  box-shadow: 0 0 8px #22c55e;
+  animation: pulse-dot 1s infinite ease-in-out;
+}
+
+.pipeline-arrow {
+  color: var(--muted);
+  opacity: 0.45;
+  font-size: 11px;
+  user-select: none;
+  flex-shrink: 0;
 }
 
 .gen-percent {
@@ -801,8 +913,41 @@ progress::-moz-progress-bar {
   color: var(--text);
 }
 
-.cancel-btn {
+.gen-meta-actions {
   margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.flow-toggle-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  font-size: 11px;
+  font-weight: 700;
+  border-radius: 7px;
+  border: 1px solid rgba(34, 197, 94, 0.5);
+  color: #22c55e;
+  background: rgba(34, 197, 94, 0.12);
+  transition: all 0.15s ease;
+}
+
+.flow-toggle-btn:hover {
+  background: rgba(34, 197, 94, 0.22);
+  box-shadow: 0 0 12px rgba(34, 197, 94, 0.28);
+}
+
+.flow-toggle-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #22c55e;
+  box-shadow: 0 0 6px #22c55e;
+}
+
+.cancel-btn {
   padding: 5px 10px;
   font-size: 11px;
   font-weight: 600;
@@ -815,6 +960,351 @@ progress::-moz-progress-bar {
 .cancel-btn:hover {
   background: var(--red);
   color: #fff;
+}
+
+/* ==========================================================================
+   COMFYUI LIVE NODE FLOW INSPECTOR (Green Active Node + Settings View)
+   ========================================================================== */
+.flow-inspector {
+  border: 1px solid color-mix(in srgb, #22c55e 40%, var(--line));
+  border-radius: var(--radius-card);
+  background: var(--card-deep);
+  margin-bottom: 12px;
+  overflow: hidden;
+  box-shadow: 0 12px 32px -8px rgba(0, 0, 0, 0.5);
+}
+
+.flow-inspector-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 11px 14px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+
+.flow-inspector-title {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.flow-inspector-title b {
+  display: block;
+  font-size: 12.5px;
+  font-weight: 800;
+  letter-spacing: 0.4px;
+  color: var(--text);
+}
+
+.flow-inspector-title small {
+  display: block;
+  font-size: 11px;
+  color: var(--muted);
+}
+
+.flow-live-indicator {
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  background: #64748b;
+  flex-shrink: 0;
+}
+
+.flow-live-indicator.is-active {
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.24), 0 0 10px #22c55e;
+  animation: pulse-dot 1.2s infinite ease-in-out;
+}
+
+.flow-inspector-controls {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.flow-legend {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 10.5px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-right: 4px;
+}
+
+.legend-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.legend-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #64748b;
+}
+
+.legend-item.is-executing .legend-dot {
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+}
+
+.legend-item.is-done .legend-dot {
+  background: #0ea5e9;
+}
+
+.flow-ext-btn {
+  padding: 5px 10px;
+  border-radius: 7px;
+  border: 1px solid var(--line-strong);
+  background: var(--card-deep);
+  color: var(--text-secondary);
+  font-size: 11px;
+  font-weight: 600;
+  text-decoration: none;
+  transition: all 0.15s ease;
+}
+
+.flow-ext-btn:hover {
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+.flow-close-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  border: 1px solid var(--line);
+  background: var(--card-deep);
+  color: var(--muted);
+  display: grid;
+  place-items: center;
+  font-size: 12px;
+  padding: 0;
+}
+
+.flow-close-btn:hover {
+  border-color: var(--red);
+  color: var(--red);
+}
+
+/* ComfyUI Node Graph Grid Canvas */
+.flow-canvas {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(220px, 1fr));
+  gap: 12px;
+  padding: 14px;
+  overflow-x: auto;
+  background-image: radial-gradient(rgba(56, 189, 248, 0.12) 1px, transparent 1px);
+  background-size: 16px 16px;
+  max-height: 540px;
+  overflow-y: auto;
+}
+
+.flow-stage {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+  min-width: 215px;
+}
+
+.flow-stage-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 5px 9px;
+  border-radius: 7px;
+  background: rgba(15, 33, 61, 0.7);
+  border: 1px solid var(--line);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.5px;
+  text-transform: uppercase;
+  color: var(--muted);
+}
+
+html:not(.dark) .flow-stage-header {
+  background: var(--card);
+}
+
+/* Individual ComfyUI Node Box */
+.flow-node {
+  border-radius: 10px;
+  border: 1.5px solid var(--line);
+  background: var(--panel);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.25);
+  overflow: hidden;
+  transition: transform 0.18s ease, border-color 0.18s ease, box-shadow 0.18s ease;
+}
+
+.flow-node-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  padding: 7px 10px;
+  background: var(--card);
+  border-bottom: 1px solid var(--line);
+}
+
+.flow-node-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+}
+
+.flow-node-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #64748b;
+  flex-shrink: 0;
+}
+
+.flow-node-title b {
+  font-size: 11.5px;
+  font-weight: 700;
+  color: var(--text);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.flow-node-badge {
+  padding: 1.5px 6px;
+  border-radius: 999px;
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.3px;
+  background: var(--card-deep);
+  color: var(--muted);
+  border: 1px solid var(--line);
+  flex-shrink: 0;
+}
+
+.flow-node-class {
+  padding: 4px 10px 2px;
+  font: 10px ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  color: var(--muted);
+  opacity: 0.85;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.flow-node-body {
+  padding: 6px 10px 9px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.flow-param {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 10.5px;
+  padding: 2.5px 6px;
+  border-radius: 5px;
+  background: var(--card-deep);
+}
+
+.flow-param-key {
+  color: var(--muted);
+  font-weight: 500;
+  flex-shrink: 0;
+}
+
+.flow-param-val {
+  color: var(--text);
+  font-weight: 600;
+  text-align: right;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 155px;
+  font-variant-numeric: tabular-nums;
+}
+
+.flow-param-prompt {
+  display: block;
+  font-size: 10.5px;
+  padding: 4px 6px;
+  border-radius: 5px;
+  background: var(--card-deep);
+  color: var(--text-secondary);
+  line-height: 1.4;
+  max-height: 44px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* Completed / Cached Node State */
+.flow-node.is-done {
+  border-color: rgba(14, 165, 233, 0.45);
+}
+
+.flow-node.is-done .flow-node-dot {
+  background: #0ea5e9;
+}
+
+.flow-node.is-done .flow-node-badge {
+  background: rgba(14, 165, 233, 0.14);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.4);
+}
+
+html:not(.dark) .flow-node.is-done .flow-node-badge {
+  color: #0284c7;
+}
+
+/* EXECUTING NODE STATE — ComfyUI Bright Green Highlight (#22c55e) */
+.flow-node.is-executing {
+  border: 2px solid #22c55e;
+  box-shadow: 0 0 0 3px rgba(34, 197, 94, 0.28), 0 0 24px rgba(34, 197, 94, 0.4);
+  transform: translateY(-1px);
+}
+
+.flow-node.is-executing .flow-node-head {
+  background: linear-gradient(90deg, rgba(34, 197, 94, 0.28) 0%, rgba(16, 185, 129, 0.12) 100%);
+  border-bottom-color: rgba(34, 197, 94, 0.5);
+}
+
+.flow-node.is-executing .flow-node-dot {
+  background: #22c55e;
+  box-shadow: 0 0 8px #22c55e;
+  animation: pulse-dot 1s infinite ease-in-out;
+}
+
+.flow-node.is-executing .flow-node-badge {
+  background: #22c55e;
+  color: #052e16;
+  border-color: #4ade80;
+  font-weight: 800;
+  box-shadow: 0 0 10px rgba(34, 197, 94, 0.5);
+}
+
+.flow-node-progress {
+  margin-top: 4px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.16);
+  overflow: hidden;
+}
+
+.flow-node-progress-bar {
+  height: 100%;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22c55e 0%, #4ade80 100%);
+  transition: width 0.25s ease;
 }
 
 /* Video Preview Stage Box (Matches Mockup Center Card) */

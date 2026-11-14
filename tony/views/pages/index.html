@@ -5,7 +5,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width,initial-scale=1">
   <title>Tony Studio | AI Video Workstation</title>
-  <link rel="stylesheet" href="/assets/css/v3-beta.css?v=6.0.0">
+  <link rel="stylesheet" href="/assets/css/v3-beta.css?v=6.1.0">
 </head>
 
 <body>
@@ -178,12 +178,13 @@
         <div class="panel-header preview-header">
           <h2>VIDEO PREVIEW</h2>
           <section id="queue-summary" class="queue-summary" aria-label="สถานะคิว">
-            <a id="queue-active-btn" class="queue-item active comfy-link" href="http://127.0.0.1:8188/" target="_blank"
-              rel="noopener" title="คลิกเพื่อเปิดดู Flow การประมวลผลบน ComfyUI">
+            <button id="queue-active-btn" type="button" class="queue-item active"
+              aria-expanded="false" aria-controls="flow-inspector"
+              title="คลิกเพื่อเปิด/ปิดหน้าต่างดู Flow โหนดและการตั้งค่าแบบ Real-time">
               <span class="queue-dot"></span>
               <div><small>ACTIVE</small><b><span id="queue-active-count">–</span> งาน</b></div>
-              <span class="queue-flow-hint">ดู Flow ↗</span>
-            </a>
+              <span id="queue-flow-hint" class="queue-flow-hint">ดู Flow ▾</span>
+            </button>
             <div class="queue-item pending"><span class="queue-dot"></span>
               <div><small>PENDING</small><b><span id="queue-pending-count">–</span> งาน</b></div>
             </div>
@@ -197,11 +198,16 @@
             <div class="gen-title-wrap">
               <span class="gen-live-dot" aria-hidden="true"></span>
               <b id="gen-phase-label">กำลังเตรียมสร้างวิดีโอ…</b>
+              <span id="gen-node-badge" class="gen-node-badge" hidden>Node: model</span>
               <span id="gen-step-badge" class="gen-step-badge" hidden>Step 0/8</span>
             </div>
             <strong id="gen-percent" class="gen-percent">0%</strong>
           </div>
           <progress id="gen-progress-bar" max="100" value="0"></progress>
+
+          <!-- Compact Real-Time Node Pipeline Strip (Active Node = Green) -->
+          <div id="gen-pipeline-strip" class="gen-pipeline-strip" aria-label="ลำดับโหนดที่กำลังทำงาน"></div>
+
           <div class="gen-meta">
             <span>
               <svg class="meta-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
@@ -221,15 +227,47 @@
               </svg>
               เหลืออีกประมาณ: <b id="gen-eta">กำลังประเมินเวลา…</b>
             </span>
-            <button id="cancel-job" type="button" class="cancel-btn">
-              <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-                stroke-width="2.2">
-                <line x1="18" y1="6" x2="6" y2="18" />
-                <line x1="6" y1="6" x2="18" y2="18" />
-              </svg>
-              ยกเลิกงาน
-            </button>
+            <div class="gen-meta-actions">
+              <button id="toggle-flow-btn" type="button" class="flow-toggle-btn" aria-expanded="false">
+                <span class="flow-toggle-dot"></span>
+                ดู Flow โหนด &amp; ตั้งค่า ▾
+              </button>
+              <button id="cancel-job" type="button" class="cancel-btn">
+                <svg class="btn-icon" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                  stroke-width="2.2">
+                  <line x1="18" y1="6" x2="6" y2="18" />
+                  <line x1="6" y1="6" x2="18" y2="18" />
+                </svg>
+                ยกเลิกงาน
+              </button>
+            </div>
           </div>
+        </section>
+
+        <!-- Live ComfyUI Node Flow Inspector (Green Active Node + Live Parameters) -->
+        <section id="flow-inspector" class="flow-inspector" hidden aria-label="ComfyUI Live Node Flow">
+          <div class="flow-inspector-head">
+            <div class="flow-inspector-title">
+              <span id="flow-live-indicator" class="flow-live-indicator"></span>
+              <div>
+                <b>COMFYUI LIVE NODE FLOW</b>
+                <small id="flow-status-badge">พร้อมตรวจสอบโหนดและการตั้งค่า</small>
+              </div>
+            </div>
+            <div class="flow-inspector-controls">
+              <div class="flow-legend" aria-hidden="true">
+                <span class="legend-item is-executing"><i class="legend-dot"></i> กำลังทำงาน (Active Node)</span>
+                <span class="legend-item is-done"><i class="legend-dot"></i> เสร็จแล้ว / Cached</span>
+                <span class="legend-item is-pending"><i class="legend-dot"></i> รอคิว</span>
+              </div>
+              <a class="comfy-link flow-ext-btn" href="http://127.0.0.1:8188/" target="_blank" rel="noopener"
+                title="เปิดหน้า ComfyUI Canvas เต็มรูปแบบบนพอร์ต 8188">
+                เปิด ComfyUI (:8188) ↗
+              </a>
+              <button id="close-flow-btn" type="button" class="flow-close-btn" title="ซ่อนหน้าต่าง Flow">✕</button>
+            </div>
+          </div>
+          <div id="flow-canvas" class="flow-canvas" role="region" aria-live="polite"></div>
         </section>
 
         <!-- Main Cinema Viewport -->
@@ -562,10 +600,10 @@
     </div>
   </main>
 
-  <script src="/assets/js/models/runtime-v4-local.js?v=6.0.0" defer></script>
-  <script src="/assets/js/models/workflow-v3-beta.js?v=6.0.0" defer></script>
-  <script src="/assets/js/services/api-client.js?v=6.0.0" defer></script>
-  <script src="/assets/js/controllers/studio-controller.js?v=6.0.0" defer></script>
+  <script src="/assets/js/models/runtime-v4-local.js?v=6.1.0" defer></script>
+  <script src="/assets/js/models/workflow-v3-beta.js?v=6.1.0" defer></script>
+  <script src="/assets/js/services/api-client.js?v=6.1.0" defer></script>
+  <script src="/assets/js/controllers/studio-controller.js?v=6.1.0" defer></script>
 </body>
 
 </html>

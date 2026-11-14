@@ -42,7 +42,7 @@ const CONFIG = {
   enableImages: env('TONY_ENABLE_IMAGES', 'KENDO_ENABLE_IMAGES', '1') === '1',
   allowLoopback: env('TONY_MCP_ALLOW_LOOPBACK', 'KENDO_MCP_ALLOW_LOOPBACK', '0') === '1'
 };
-const { buildWorkflow } = require(CONFIG.workflowFile);
+const { buildWorkflow, buildLiteGraph } = require(CONFIG.workflowFile);
 
 const KINDS = { image: ['png', 'jpg', 'jpeg', 'webp'], video: ['mp4', 'webm', 'mov'], audio: ['wav', 'mp3', 'flac', 'ogg', 'm4a'] };
 const MIME_EXTENSIONS = { 'image/png': 'png', 'image/jpeg': 'jpg', 'image/webp': 'webp', 'video/mp4': 'mp4', 'video/webm': 'webm', 'video/quicktime': 'mov', 'audio/wav': 'wav', 'audio/x-wav': 'wav', 'audio/wave': 'wav', 'audio/mpeg': 'mp3', 'audio/mp3': 'mp3', 'audio/flac': 'flac', 'audio/x-flac': 'flac', 'audio/ogg': 'ogg', 'audio/mp4': 'm4a', 'audio/x-m4a': 'm4a' };
@@ -275,7 +275,8 @@ function createServer({ enableImages = CONFIG.enableImages } = {}) {
         videoAudio: video_audio && videoNames.length > 0
       });
     } catch (error) { throw new ToolError(error.message); }
-    const submitted = await comfy('/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: workflow, client_id: 'tony-mcp-' + crypto.randomUUID() }) });
+    const extraData = typeof buildLiteGraph === 'function' ? { extra_pnginfo: { workflow: buildLiteGraph(workflow) } } : undefined;
+    const submitted = await comfy('/prompt', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prompt: workflow, extra_data: extraData }) });
     if (!submitted.prompt_id) throw new ToolError('ComfyUI did not return a job id: ' + JSON.stringify(submitted));
     const tags = {};
     imageNames.forEach((name, i) => { tags[`<Picture ${i + 1}>`] = name; });

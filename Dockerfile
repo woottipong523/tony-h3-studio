@@ -9,9 +9,10 @@ ENV DEBIAN_FRONTEND=noninteractive \
     NODE_VERSION=v22.23.2 \
     PATH="/opt/node/bin:${PATH}"
 
-# 1. Install system utilities, video codecs, and download tools
+# 1. Install system utilities, video codecs, build tools, and download tools
 RUN apt-get update && apt-get install -y --no-install-recommends \
     aria2 \
+    build-essential \
     curl \
     ca-certificates \
     ffmpeg \
@@ -19,6 +20,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     git-lfs \
     libgl1 \
     libglib2.0-0 \
+    ninja-build \
     openssh-server \
     openssh-client \
     rsync \
@@ -45,9 +47,16 @@ COPY pip-requirements.txt /tmp/pip-requirements.txt
 RUN pip install --no-cache-dir -r /tmp/pip-requirements.txt && \
     rm -f /tmp/pip-requirements.txt
 
-# 5b. SageAttention is optional (no prebuilt sm_120 wheel on PyPI); never fail the build
-RUN pip install --no-cache-dir sageattention==2.2.0 || \
-    echo "[WARN] sageattention not installed - runtime will fall back to native attention"
+# 5b. Compile SageAttention 2.2.0 from source for Blackwell (sm_120 / RTX 5090)
+RUN git clone --depth 1 https://github.com/thu-ml/SageAttention.git /tmp/SageAttention && \
+    cd /tmp/SageAttention && \
+    TORCH_CUDA_ARCH_LIST="12.0" \
+    FORCE_CUDA="1" \
+    EXT_PARALLEL="1" \
+    MAX_JOBS="2" \
+    pip install --no-cache-dir --no-build-isolation -v . && \
+    cd / && rm -rf /tmp/SageAttention && \
+    python3 -c "import sageattention; print('[BUILD] SageAttention compiled:', getattr(sageattention, '__version__', 'installed'))"
 
 # 6. Clone and setup ComfyUI official release + verified custom nodes
 RUN git clone --depth 1 -b v0.33.2 https://github.com/Comfy-Org/ComfyUI.git /opt/comfyui-baked && \
@@ -70,7 +79,7 @@ RUN TORCH_PIN=$(python3 -c "import torch,torchvision,torchaudio;print(f'torch=={
         pip install --no-cache-dir -c /opt/comfyui-runtime-constraints.txt -r "$req" || \
             echo "[WARN] Some requirements failed for $req"; \
     done && \
-    python3 -c "import sqlalchemy, torch; print('[BUILD] torch', torch.__version__, 'cuda', torch.version.cuda, 'archs', torch.cuda.get_arch_list())" && \
+    python3 -c "import sqlalchemy, torch, sageattention; import comfy_kitchen.backends.cuda as ck; assert ck._EXT_AVAILABLE, f'comfy_kitchen CUDA unavailable: {ck._EXT_ERROR}'; print('[BUILD] torch', torch.__version__, 'cuda', torch.version.cuda, 'comfy_kitchen_cuda', ck._EXT_AVAILABLE, 'cublaslt', ck._CUBLASLT_AVAILABLE, 'sageattention', getattr(sageattention, '__version__', 'ok'))" && \
     rm -f /tmp/comfy-req.txt
 
 # 7. Copy Tony MVC Application, MCP Server, and Startup Scripts

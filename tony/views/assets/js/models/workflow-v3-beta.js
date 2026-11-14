@@ -57,7 +57,79 @@
     audios.forEach((audio,i)=>{w['audio'+i]=n('LoadAudio',{audio});w.reference.inputs['ref_audios.ref_audio_'+i]=['audio'+i,0]});
     return w;
   }
-  const exported = {buildWorkflow, MODELS};
+
+  function buildLiteGraph(w) {
+    if (!w || typeof w !== 'object') return null;
+    const layout = {
+      model: [40, 40],
+      turbo: [400, 40],
+      sage: [740, 40],
+      clip: [40, 180],
+      vae: [40, 320],
+      audioVae: [40, 440],
+      reference: [400, 220],
+      noise: [780, 160],
+      guider: [780, 280],
+      sampler: [780, 400],
+      schedule: [780, 520],
+      sample: [1140, 260],
+      decode: [1500, 200],
+      decodeAudio: [1500, 360],
+      video: [1840, 260],
+      save: [2180, 260]
+    };
+    const nodes = [];
+    const links = [];
+    let linkId = 1;
+    const keys = Object.keys(w);
+    keys.forEach((key, idx) => {
+      const entry = w[key];
+      if (!entry || !entry.class_type) return;
+      let pos = layout[key];
+      if (!pos) {
+        if (key.startsWith('image')) pos = [-320, 40 + parseInt(key.slice(5) || '0', 10) * 110];
+        else if (key.startsWith('refVideo')) pos = [-320, 420];
+        else if (key.startsWith('audio')) pos = [-320, 560 + parseInt(key.slice(5) || '0', 10) * 110];
+        else pos = [40 + (idx % 5) * 340, 660 + Math.floor(idx / 5) * 140];
+      }
+      const widgetValues = [];
+      const nodeInputs = [];
+      for (const [inName, inVal] of Object.entries(entry.inputs || {})) {
+        if (Array.isArray(inVal) && inVal.length === 2 && w[inVal[0]]) {
+          const lid = linkId++;
+          nodeInputs.push({ name: inName, type: '*', link: lid });
+          links.push([lid, String(inVal[0]), Number(inVal[1]) || 0, String(key), nodeInputs.length - 1, '*']);
+        } else {
+          widgetValues.push(inVal);
+        }
+      }
+      nodes.push({
+        id: String(key),
+        type: entry.class_type,
+        pos,
+        size: [300, Math.max(84, 50 + widgetValues.length * 26)],
+        flags: {},
+        order: idx,
+        mode: 0,
+        inputs: nodeInputs,
+        outputs: [{ name: 'OUTPUT', type: '*', links: [] }],
+        properties: { 'Node name for S&R': entry.class_type },
+        widgets_values: widgetValues
+      });
+    });
+    return {
+      last_node_id: keys.length,
+      last_link_id: linkId,
+      nodes,
+      links,
+      groups: [],
+      config: {},
+      extra: { ds: { scale: 0.75, offset: [360, 40] } },
+      version: 0.4
+    };
+  }
+
+  const exported = {buildWorkflow, buildLiteGraph, MODELS};
   if (typeof module !== 'undefined') module.exports = exported;
   else {
     root.TonyWorkflow = exported;
