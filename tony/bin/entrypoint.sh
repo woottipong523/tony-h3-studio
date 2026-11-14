@@ -21,6 +21,12 @@ for node in ComfyUI-VideoHelperSuite ComfyUI-ALLinONE-MinimaxH3; do
   fi
 done
 
+if [[ -d /opt/tony/workflows ]]; then
+  mkdir -p "$COMFYUI_DIR/user/default/workflows"
+  cp -f /opt/tony/workflows/*.json "$COMFYUI_DIR/user/default/workflows/" 2>/dev/null || true
+  echo "[TONY] Preloaded default MiniMax H3 workflows into ComfyUI"
+fi
+
 mkdir -p "$(dirname "$ARGS_FILE")"
 touch "$ARGS_FILE"
 if [[ "${TONY_ENABLE_SAGE:-1}" == "1" ]] && \

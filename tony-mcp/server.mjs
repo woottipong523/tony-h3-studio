@@ -37,7 +37,15 @@ const CONFIG = {
   page: `http://${env('TONY_PAGE_HOST_INTERNAL', 'KENDO_PAGE_HOST_INTERNAL', '127.0.0.1')}:${env('TONY_PAGE_PORT', 'KENDO_PAGE_PORT', '3000')}`,
   inputDir: env('TONY_INPUT_DIR', 'KENDO_INPUT_DIR', '/workspace/runpod-slim/ComfyUI/input'),
   workflowFile: resolveWorkflowFile(),
-  publicPage: env('TONY_PUBLIC_PAGE_URL', 'KENDO_PUBLIC_PAGE_URL', process.env.RUNPOD_POD_ID ? `https://${process.env.RUNPOD_POD_ID.trim()}-${env('TONY_PAGE_PORT', 'KENDO_PAGE_PORT', '3000')}.proxy.runpod.net` : ''),
+  publicPage: env(
+    'TONY_PUBLIC_PAGE_URL',
+    'KENDO_PUBLIC_PAGE_URL',
+    process.env.RUNPOD_POD_ID
+      ? `https://${process.env.RUNPOD_POD_ID.trim()}-${env('TONY_PAGE_PORT', 'KENDO_PAGE_PORT', '3000')}.proxy.runpod.net`
+      : (process.env.PUBLIC_IPADDR && process.env.VAST_TCP_PORT_3000)
+        ? `http://${process.env.PUBLIC_IPADDR.trim()}:${process.env.VAST_TCP_PORT_3000.trim()}`
+        : ''
+  ),
   maxUploadBytes: 512 * 1024 * 1024,
   enableImages: env('TONY_ENABLE_IMAGES', 'KENDO_ENABLE_IMAGES', '1') === '1',
   allowLoopback: env('TONY_MCP_ALLOW_LOOPBACK', 'KENDO_MCP_ALLOW_LOOPBACK', '0') === '1'

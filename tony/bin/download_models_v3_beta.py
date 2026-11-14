@@ -54,6 +54,29 @@ def download(relative: str, expected: int) -> None:
     print("[TONY v3] Ready " + relative, flush=True)
 
 
+def create_workflow_compat_aliases() -> None:
+    """Create compatibility symlinks for legacy workflow JSON filenames (e.g. Kendo_minimax_h3_draft.json)."""
+    aliases = [
+        (
+            "diffusion_models/minimax_h3_ref2va_pruned_int8_convrot.safetensors",
+            "diffusion_models/minimax_h3_fl2va_pruned_int8_convrot.safetensors",
+        ),
+        (
+            "loras/minimax_h3_ref2v_turbo_4step_v0.1_comfyui_bf16.safetensors",
+            "loras/minimax_h3_turbo_v4_step600_ema_pruned_comfyui.safetensors",
+        ),
+    ]
+    for src_rel, dst_rel in aliases:
+        src = Path(MODEL_ROOT, src_rel)
+        dst = Path(MODEL_ROOT, dst_rel)
+        if src.is_file() and not dst.exists():
+            try:
+                dst.symlink_to(src.name)
+                print(f"[TONY v3] Created workflow alias {dst_rel} -> {src.name}", flush=True)
+            except Exception as exc:
+                print(f"[TONY v3] Could not create alias {dst_rel}: {exc}", flush=True)
+
+
 def main() -> None:
     specs = get_model_specs()
     Path(LOCK_FILE).parent.mkdir(parents=True, exist_ok=True)
@@ -66,6 +89,7 @@ def main() -> None:
                 futures = [pool.submit(download, *spec) for spec in specs]
                 for future in concurrent.futures.as_completed(futures):
                     future.result()
+            create_workflow_compat_aliases()
             Path(READY_FILE).write_text("tony v3 ready\n", encoding="utf-8")
         except Exception as error:
             Path(ERROR_FILE).write_text(str(error), encoding="utf-8")

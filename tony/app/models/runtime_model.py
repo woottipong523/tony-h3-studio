@@ -29,6 +29,7 @@ def mcp_code() -> str | None:
 
 def mcp_url() -> str | None:
     pod = os.environ.get("RUNPOD_POD_ID", "").strip()
+    vast_ip = os.environ.get("PUBLIC_IPADDR", "").strip() or os.environ.get("VAST_TCP_PORT_3001", "").strip()
     code = mcp_code()
     if not code:
         return None
@@ -36,6 +37,10 @@ def mcp_url() -> str | None:
         return MCP_PUBLIC_URL.replace("{code}", quote(code, safe=""))
     if pod:
         return f'https://{pod}-{MCP_PORT}.proxy.runpod.net/mcp/{quote(code, safe="")}'
+    if os.environ.get("PUBLIC_IPADDR") and os.environ.get("VAST_TCP_PORT_3001"):
+        ip = os.environ.get("PUBLIC_IPADDR").strip()
+        port = os.environ.get("VAST_TCP_PORT_3001").strip()
+        return f'http://{ip}:{port}/mcp/{quote(code, safe="")}'
     return f'http://127.0.0.1:{MCP_PORT}/mcp/{quote(code, safe="")}'
 
 
@@ -43,6 +48,10 @@ def comfy_url() -> str:
     pod = os.environ.get("RUNPOD_POD_ID", "").strip()
     if pod:
         return f"https://{pod}-{COMFY_PORT}.proxy.runpod.net/"
+    if os.environ.get("PUBLIC_IPADDR") and os.environ.get("VAST_TCP_PORT_8188"):
+        ip = os.environ.get("PUBLIC_IPADDR").strip()
+        port = os.environ.get("VAST_TCP_PORT_8188").strip()
+        return f"http://{ip}:{port}/"
     return f"http://127.0.0.1:{COMFY_PORT}/"
 
 

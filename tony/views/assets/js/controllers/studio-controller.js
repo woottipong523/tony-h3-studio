@@ -1,5 +1,15 @@
 /* MVC Controller: Tony Studio Main Video Generator (:3000) */
 'use strict';
+if (typeof crypto !== 'undefined' && typeof crypto.randomUUID !== 'function') {
+  crypto.randomUUID = function () {
+    const bytes = new Uint8Array(16);
+    crypto.getRandomValues(bytes);
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+    const hex = [...bytes].map(b => b.toString(16).padStart(2, '0')).join('');
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+  };
+}
 const $ = s => document.querySelector(s);
 const media = { image: [], video: [], audio: [] };
 const limits = { image: 9, video: 1, audio: 3 };
@@ -802,7 +812,11 @@ function renderMedia(kind) {
 }
 
 function renderTags() {
-  const tags = media.image.map((_, i) => `<Picture ${i + 1}>`);
+  const tags = [];
+  media.image.forEach((_, i) => {
+    tags.push(`<Picture ${i + 1}>`);
+    tags.push(`<Subject ${i + 1}>`);
+  });
   let audioIndex = 1;
   if ($('#video-enabled').checked && media.video.length) {
     tags.push('<Video 1>');
@@ -811,6 +825,7 @@ function renderTags() {
   if ($('#audio-enabled').checked) {
     media.audio.forEach(() => tags.push(`<Audio ${audioIndex++}>`));
   }
+  tags.push('<d>[Thai] บทพูด</d>');
   $('#tags').replaceChildren(
     ...tags.map(tag => {
       const b = document.createElement('button');
@@ -1429,6 +1444,16 @@ async function syncServerHistory() {
   renderHistory();
 }
 
+function randomHexId(len = 6) {
+  try {
+    const bytes = new Uint8Array(Math.ceil(len / 2));
+    crypto.getRandomValues(bytes);
+    return [...bytes].map(b => b.toString(16).padStart(2, '0')).join('').slice(0, len);
+  } catch {
+    return Math.random().toString(16).slice(2, 2 + len).padEnd(len, '0');
+  }
+}
+
 function uploadName(name) {
   const dot = name.lastIndexOf('.');
   const base = (dot > 0 ? name.slice(0, dot) : name)
@@ -1436,7 +1461,7 @@ function uploadName(name) {
     .replace(/[^\w.-]+/g, '-')
     .replace(/^[-.]+|[-.]+$/g, '')
     .slice(0, 48) || 'ref';
-  return base + '-' + crypto.randomUUID().slice(0, 6) + (dot > 0 ? name.slice(dot).toLowerCase() : '');
+  return base + '-' + randomHexId(6) + (dot > 0 ? name.slice(dot).toLowerCase() : '');
 }
 
 async function upload(file) {

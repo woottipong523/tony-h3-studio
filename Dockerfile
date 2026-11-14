@@ -47,10 +47,10 @@ COPY pip-requirements.txt /tmp/pip-requirements.txt
 RUN pip install --no-cache-dir -r /tmp/pip-requirements.txt && \
     rm -f /tmp/pip-requirements.txt
 
-# 5b. Compile SageAttention 2.2.0 from source for Blackwell (sm_120 / RTX 5090)
+# 5b. Compile SageAttention 2.2.0 from source for Ampere/Ada/Hopper/Blackwell (sm_80..sm_120)
 RUN git clone --depth 1 https://github.com/thu-ml/SageAttention.git /tmp/SageAttention && \
     cd /tmp/SageAttention && \
-    TORCH_CUDA_ARCH_LIST="12.0" \
+    TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0;12.0" \
     FORCE_CUDA="1" \
     EXT_PARALLEL="1" \
     MAX_JOBS="2" \

@@ -60,11 +60,15 @@ def configure_args(active):
     ARGS_FILE.write_text("\n".join(lines) + ("\n" if lines else ""), encoding="utf-8")
 
 
+SUPPORTED_SAGE_ARCHS = {"8.0", "8.6", "8.9", "9.0", "12.0"}
+
+
 def main():
     gpu = gpu_details()
     requested = env("TONY_ENABLE_SAGE", "KENDO_ENABLE_SAGE", "1") == "1"
     available, version, error = sage_import()
-    compatible = gpu.get("compute_capability") == "12.0"
+    cap = str(gpu.get("compute_capability") or "")
+    compatible = cap in SUPPORTED_SAGE_ARCHS
     active = requested and available and compatible
     configure_args(active)
     reason = None
@@ -73,7 +77,7 @@ def main():
     elif not available:
         reason = error or "sageattention import failed"
     elif not compatible:
-        reason = f"GPU compute capability {gpu.get('compute_capability') or 'unknown'} is not sm_120"
+        reason = f"GPU compute capability {cap or 'unknown'} not in {sorted(SUPPORTED_SAGE_ARCHS)}"
     runtime = {
         "setup": env("TONY_IMAGE_VERSION", "KENDO_IMAGE_VERSION", "runpod"),
         "model_profile": env("TONY_MODEL_PROFILE", "KENDO_MODEL_PROFILE", "fast"),
