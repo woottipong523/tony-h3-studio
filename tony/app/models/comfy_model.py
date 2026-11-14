@@ -246,7 +246,6 @@ class ComfyWSBridge:
                         )
                 self._state["updated_at"] = now
             if auto_completed_pid is not None:
-                threading.Thread(target=free_comfy_memory, kwargs={"unload_models": True}, daemon=True).start()
                 self._broadcast("execution_done", {"completed_prompt_id": auto_completed_pid})
             else:
                 self._broadcast("queue")
@@ -334,7 +333,6 @@ class ComfyWSBridge:
                     queue_pending=q_info["pending"] if q_info["ok"] else 0,
                     updated_at=now,
                 )
-            threading.Thread(target=free_comfy_memory, kwargs={"unload_models": True}, daemon=True).start()
             self._broadcast("execution_done", {"completed_prompt_id": prompt_id})
             return
 
@@ -370,7 +368,6 @@ class ComfyWSBridge:
                         queue_pending=q_info["pending"] if q_info["ok"] else 0,
                         updated_at=now,
                     )
-                threading.Thread(target=free_comfy_memory, kwargs={"unload_models": True}, daemon=True).start()
                 self._broadcast("execution_done", {"completed_prompt_id": prompt_id})
                 return
 
@@ -460,7 +457,6 @@ class ComfyWSBridge:
                     queue_active=0,
                     updated_at=now,
                 )
-            threading.Thread(target=free_comfy_memory, kwargs={"unload_models": True}, daemon=True).start()
             self._broadcast(msg_type, {"failed_prompt_id": prompt_id})
 
     def _run_loop(self) -> None:

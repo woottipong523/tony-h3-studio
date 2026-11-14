@@ -52,9 +52,6 @@ def proxy_to_comfy(handler, include_body: bool = True) -> None:
                     headers["Content-Length"] = str(len(body))
         except Exception:
             pass
-        q_info = fetch_queue_counts()
-        if q_info.get("ok") and q_info.get("active", 0) == 0 and q_info.get("pending", 0) == 0:
-            free_comfy_memory(unload_models=True)
         comfy_bridge.mark_prompt_submitted(submitted_wf)
 
     connection = http.client.HTTPConnection(COMFY_HOST, COMFY_PORT, timeout=120)

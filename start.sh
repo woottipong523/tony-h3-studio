@@ -237,17 +237,13 @@ if [ -s "$ARGS_FILE" ]; then
 fi
 
 echo "Starting ComfyUI with args: $FIXED_ARGS"
-python main.py $FIXED_ARGS &
-COMFY_PID=$!
-trap "kill $COMFY_PID 2>/dev/null" SIGTERM SIGINT
-wait $COMFY_PID || true
-
-echo "============================================="
-echo "  ComfyUI crashed — check the logs above."
-echo "  SSH and JupyterLab are still available."
-echo "  To restart after fixing:"
-echo "    cd $COMFYUI_DIR && source .venv-cu128/bin/activate"
-echo "    python main.py $FIXED_ARGS"
-echo "============================================="
-
-sleep infinity
+trap "kill \$COMFY_PID 2>/dev/null; exit 0" SIGTERM SIGINT
+while true; do
+    python main.py $FIXED_ARGS &
+    COMFY_PID=$!
+    wait $COMFY_PID || true
+    echo "============================================="
+    echo "  [WARN] ComfyUI exited — auto-restarting in 3 seconds..."
+    echo "============================================="
+    sleep 3
+done

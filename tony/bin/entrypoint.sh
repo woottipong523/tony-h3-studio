@@ -36,6 +36,15 @@ fi
 if ! grep -qxF -- "--enable-triton-backend" "$ARGS_FILE"; then
   echo "--enable-triton-backend" >> "$ARGS_FILE"
 fi
+if ! grep -qxF -- "--fast-disk" "$ARGS_FILE"; then
+  echo "--fast-disk" >> "$ARGS_FILE"
+fi
+if ! grep -qxF -- "--disable-pinned-memory" "$ARGS_FILE"; then
+  echo "--disable-pinned-memory" >> "$ARGS_FILE"
+fi
+if ! grep -qxF -- "--cache-classic" "$ARGS_FILE"; then
+  echo "--cache-classic" >> "$ARGS_FILE"
+fi
 if ! grep -qxF -- "--enable-cors-header" "$ARGS_FILE"; then
   echo "--enable-cors-header" >> "$ARGS_FILE"
 fi
