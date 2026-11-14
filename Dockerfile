@@ -42,21 +42,11 @@ RUN mkdir -p /opt/node && \
     curl -fsSL https://nodejs.org/dist/${NODE_VERSION}/node-${NODE_VERSION}-linux-x64.tar.xz | \
     tar -xJ -C /opt/node --strip-components=1
 
-# 5. Install pinned Python dependencies
+# 5. Install pinned Python dependencies (includes comfy-kitchen[cublas] + sageattention Triton wheel)
 COPY pip-requirements.txt /tmp/pip-requirements.txt
 RUN pip install --no-cache-dir -r /tmp/pip-requirements.txt && \
-    rm -f /tmp/pip-requirements.txt
-
-# 5b. Compile SageAttention 2.2.0 from source for Ampere/Ada/Hopper/Blackwell (sm_80..sm_120)
-RUN git clone --depth 1 https://github.com/thu-ml/SageAttention.git /tmp/SageAttention && \
-    cd /tmp/SageAttention && \
-    TORCH_CUDA_ARCH_LIST="8.0;8.6;8.9;9.0;12.0" \
-    FORCE_CUDA="1" \
-    EXT_PARALLEL="1" \
-    MAX_JOBS="2" \
-    pip install --no-cache-dir --no-build-isolation -v . && \
-    cd / && rm -rf /tmp/SageAttention && \
-    python3 -c "import sageattention; print('[BUILD] SageAttention compiled:', getattr(sageattention, '__version__', 'installed'))"
+    rm -f /tmp/pip-requirements.txt && \
+    python3 -c "import sageattention; print('[BUILD] SageAttention Triton ready:', getattr(sageattention, '__file__', 'installed'))"
 
 # 6. Clone and setup ComfyUI official release + verified custom nodes
 RUN git clone --depth 1 -b v0.33.2 https://github.com/Comfy-Org/ComfyUI.git /opt/comfyui-baked && \
